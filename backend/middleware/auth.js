@@ -1,5 +1,6 @@
 // middleware/auth.js
 const jwt = require('jsonwebtoken');
+const logger = require('../utils/logger');
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 function authMiddleware(req, res, next) {
@@ -16,6 +17,7 @@ function authMiddleware(req, res, next) {
     req.user = decoded; // includes: user_id, email, role
     next();
   } catch (err) {
+    logger.warn('Invalid token');
     return res.status(401).json({ message: 'Invalid token' });
   }
 }

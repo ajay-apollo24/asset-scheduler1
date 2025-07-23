@@ -2,6 +2,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const logger = require('../utils/logger');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
@@ -13,13 +14,22 @@ const AuthController = {
       return res.status(400).json({ message: 'Email and password required' });
     }
 
-    const user = await User.findByEmail(email);
+    let user;
+    try {
+      user = await User.findByEmail(email);
+    } catch (err) {
+      logger.error(err);
+      return res.status(500).json({ message: 'Error retrieving user' });
+    }
+
     if (!user) {
+      logger.warn(`Invalid credentials for email ${email}`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) {
+      logger.warn(`Invalid credentials for email ${email}`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 

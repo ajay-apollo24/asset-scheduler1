@@ -1,5 +1,6 @@
 // controllers/assetController.js
 const Asset = require('../models/Asset');
+const logger = require('../utils/logger');
 
 const AssetController = {
   async create(req, res) {
@@ -19,7 +20,7 @@ const AssetController = {
       });
       res.status(201).json(asset);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       res.status(500).json({ message: 'Failed to create asset' });
     }
   },
@@ -29,6 +30,7 @@ const AssetController = {
       const assets = await Asset.findAll();
       res.json(assets);
     } catch (err) {
+      logger.error(err);
       res.status(500).json({ message: 'Failed to fetch assets' });
     }
   },
@@ -39,6 +41,7 @@ const AssetController = {
       if (!asset) return res.status(404).json({ message: 'Asset not found' });
       res.json(asset);
     } catch (err) {
+      logger.error(err);
       res.status(500).json({ message: 'Error retrieving asset' });
     }
   },
@@ -48,7 +51,7 @@ const AssetController = {
       const updated = await Asset.update(req.params.id, req.body);
       res.json(updated);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       res.status(500).json({ message: 'Failed to update asset' });
     }
   }

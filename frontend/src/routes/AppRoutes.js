@@ -41,4 +41,4 @@ const AppRoutes = () => {
   );
 };
 
-export default AppRoutes;x
+export default AppRoutes;

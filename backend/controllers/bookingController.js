@@ -1,6 +1,7 @@
 // controllers/bookingController.js
 const Booking = require('../models/Booking');
 const AuditLog = require('../models/AuditLog');
+const logger = require('../utils/logger');
 
 const BookingController = {
   async create(req, res) {
@@ -37,7 +38,7 @@ const BookingController = {
 
       res.status(201).json(booking);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       res.status(500).json({ message: 'Failed to create booking' });
     }
   },
@@ -47,6 +48,7 @@ const BookingController = {
       const bookings = await Booking.findAll();
       res.json(bookings);
     } catch (err) {
+      logger.error(err);
       res.status(500).json({ message: 'Failed to fetch bookings' });
     }
   },
@@ -57,6 +59,7 @@ const BookingController = {
       if (!booking) return res.status(404).json({ message: 'Booking not found' });
       res.json(booking);
     } catch (err) {
+      logger.error(err);
       res.status(500).json({ message: 'Failed to retrieve booking' });
     }
   },
@@ -83,6 +86,7 @@ const BookingController = {
 
       res.json(updated);
     } catch (err) {
+      logger.error(err);
       res.status(500).json({ message: 'Failed to update booking status' });
     }
   }

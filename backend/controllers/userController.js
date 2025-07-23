@@ -1,5 +1,6 @@
 // controllers/userController.js
 const User = require('../models/User');
+const logger = require('../utils/logger');
 
 const UserController = {
   async create(req, res) {
@@ -18,7 +19,7 @@ const UserController = {
       const newUser = await User.create({ email, password, role });
       res.status(201).json(newUser);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       res.status(500).json({ message: 'Failed to create user' });
     }
   },
@@ -28,6 +29,7 @@ const UserController = {
       const result = await User.findAll(); // you can implement this in model if needed
       res.json(result);
     } catch (err) {
+      logger.error(err);
       res.status(500).json({ message: 'Failed to fetch users' });
     }
   },
@@ -38,6 +40,7 @@ const UserController = {
       if (!user) return res.status(404).json({ message: 'User not found' });
       res.json(user);
     } catch (err) {
+      logger.error(err);
       res.status(500).json({ message: 'Error retrieving user' });
     }
   }
