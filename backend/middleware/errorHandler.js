@@ -1,7 +1,12 @@
-// backend/middleware/errorHandler.js
-// TODO: Implement centralized error handler middleware.
+// middleware/errorHandler.js
 
-module.exports = (err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Internal Server Error' });
-}; 
+function errorHandler(err, req, res, next) {
+  console.error(err.stack);
+  const status = err.status || 500;
+  res.status(status).json({
+    message: err.message || 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err : undefined
+  });
+}
+
+module.exports = errorHandler;

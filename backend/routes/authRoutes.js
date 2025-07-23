@@ -1,7 +1,10 @@
-// backend/routes/authRoutes.js
-// TODO: Define authentication related routes.
-
+// routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
+const AuthController = require('../controllers/authController');
+const authMiddleware = require('../middleware/auth');
 
-module.exports = router; 
+router.post('/login', AuthController.login);
+router.get('/me', authMiddleware, AuthController.me);
+
+module.exports = router;
