@@ -1,5 +1,62 @@
-import React from 'react';
+// src/components/BookingForm.js
+import { useEffect, useState } from 'react';
+import apiClient from '../api/apiClient';
 
-export default function BookingForm() {
-  return <div>Booking Form</div>;
-} 
+const BookingForm = ({ onCreated }) => {
+  const [assets, setAssets] = useState([]);
+  const [form, setForm] = useState({ asset_id: '', title: '', start_date: '', end_date: '' });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  useEffect(() => {
+    apiClient.get('/assets').then(res => setAssets(res.data));
+  }, []);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      await apiClient.post('/bookings', form);
+      setSuccess('Booking requested');
+      onCreated?.();
+    } catch (err) {
+      setError('Failed to create booking');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-white p-4 shadow rounded-xl mb-6">
+      <h2 className="text-lg font-semibold mb-4">Request Booking</h2>
+      {error && <p className="text-red-600">{error}</p>}
+      {success && <p className="text-green-600">{success}</p>}
+      <div className="mb-3">
+        <label className="block text-sm mb-1">Asset</label>
+        <select name="asset_id" value={form.asset_id} onChange={handleChange} className="w-full border px-3 py-2 rounded">
+          <option value="">Select asset</option>
+          {assets.map((a) => (
+            <option key={a.id} value={a.id}>{a.name} - {a.location}</option>
+          ))}
+        </select>
+      </div>
+      {['title', 'start_date', 'end_date'].map((field) => (
+        <div key={field} className="mb-3">
+          <label className="block text-sm mb-1 capitalize">{field.replace('_', ' ')}</label>
+          <input
+            name={field}
+            type={field.includes('date') ? 'date' : 'text'}
+            value={form[field]}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+          />
+        </div>
+      ))}
+      <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Submit</button>
+    </form>
+  );
+};
+
+export default BookingForm;

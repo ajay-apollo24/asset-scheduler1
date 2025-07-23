@@ -1,7 +1,13 @@
 import React from 'react';
+import { AuthProvider } from './contexts/AuthContext';
+import AppRoutes from './routes/AppRoutes';
 
 function App() {
-  return <div>Asset Scheduler App</div>;
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  );
 }
 
-export default App; 
+export default App;
