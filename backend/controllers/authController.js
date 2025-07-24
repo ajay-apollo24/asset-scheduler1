@@ -17,6 +17,11 @@ const AuthController = {
     let user;
     try {
       user = await User.findByEmail(email);
+      if (!user) {
+        logger.warn(`No user found with email ${email}`);
+      } else {
+        logger.debug(`User found with email ${email} (id ${user.id})`);
+      }
     } catch (err) {
       logger.error(err);
       return res.status(500).json({ message: 'Error retrieving user' });
@@ -27,7 +32,10 @@ const AuthController = {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const valid = await bcrypt.compare(password, user.password_hash || '');
+    if (!valid) {
+      logger.warn(`Password mismatch for user ${email}`);
+    }
     if (!valid) {
       logger.warn(`Invalid credentials for email ${email}`);
       return res.status(401).json({ message: 'Invalid credentials' });

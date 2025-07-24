@@ -5,24 +5,33 @@ const logger = require('../utils/logger');
 
 const BookingController = {
   async create(req, res) {
-    const { asset_id, title, start_date, end_date } = req.body;
+    const { asset_id, title, lob, purpose, start_date, end_date } = req.body;
     const user_id = req.user.user_id;
 
-    if (!asset_id || !title || !start_date || !end_date) {
+    if (!asset_id || !title || !lob || !purpose || !start_date || !end_date) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
     try {
-      // Check for conflicts
+      // Core date-overlap conflicts
       const conflicts = await Booking.findConflicts(asset_id, start_date, end_date);
       if (conflicts.length > 0) {
         return res.status(409).json({ message: 'Slot already booked for the given dates', conflicts });
+      }
+
+      // Rule-engine validation (additional fairness constraints)
+      const { validateBookingRules } = require('../utils/ruleEngine');
+      const ruleErrors = await validateBookingRules({ asset_id, lob, purpose, start_date, end_date });
+      if (ruleErrors.length) {
+        return res.status(422).json({ message: 'Rule validation failed', errors: ruleErrors });
       }
 
       const booking = await Booking.create({
         asset_id,
         user_id,
         title,
+        lob,
+        purpose,
         start_date,
         end_date,
         status: 'pending'

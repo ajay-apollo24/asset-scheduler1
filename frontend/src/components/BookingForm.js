@@ -4,7 +4,7 @@ import apiClient from '../api/apiClient';
 
 const BookingForm = ({ onCreated }) => {
   const [assets, setAssets] = useState([]);
-  const [form, setForm] = useState({ asset_id: '', title: '', start_date: '', end_date: '' });
+  const [form, setForm] = useState({ asset_id: '', title: '', lob: '', purpose: '', start_date: '', end_date: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -22,9 +22,22 @@ const BookingForm = ({ onCreated }) => {
     try {
       await apiClient.post('/bookings', form);
       setSuccess('Booking requested');
+      setError('');
       onCreated?.();
     } catch (err) {
-      setError('Failed to create booking');
+      // Attempt to surface detailed backend errors
+      if (err.response && err.response.data) {
+        const { errors, message } = err.response.data;
+        if (Array.isArray(errors) && errors.length) {
+          setError(errors.join('\n'));
+        } else if (message) {
+          setError(message);
+        } else {
+          setError('Failed to create booking');
+        }
+      } else {
+        setError('Failed to create booking');
+      }
     }
   };
 
@@ -42,7 +55,7 @@ const BookingForm = ({ onCreated }) => {
           ))}
         </select>
       </div>
-      {['title', 'start_date', 'end_date'].map((field) => (
+      {['title', 'lob', 'purpose', 'start_date', 'end_date'].map((field) => (
         <div key={field} className="mb-3">
           <label className="block text-sm mb-1 capitalize">{field.replace('_', ' ')}</label>
           <input
