@@ -2,26 +2,26 @@
 const db = require('../config/db');
 
 const Asset = {
-  async create({ name, location, type, max_slots, is_active = true }) {
+  async create({ name, location, type, max_slots, importance = 1, impressions_per_day = 0, value_per_day = 0, is_active = true }) {
     const result = await db.query(
-      `INSERT INTO assets (name, location, type, max_slots, is_active)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, location, type, max_slots, is_active`,
-      [name, location, type, max_slots, is_active]
+      `INSERT INTO assets (name, location, type, max_slots, importance, impressions_per_day, value_per_day, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, name, location, type, max_slots, importance, impressions_per_day, value_per_day, is_active`,
+      [name, location, type, max_slots, importance, impressions_per_day, value_per_day, is_active]
     );
     return result.rows[0];
   },
 
   async findAll() {
     const result = await db.query(
-      'SELECT id, name, location, type, max_slots, is_active FROM assets ORDER BY name ASC'
+      'SELECT id, name, location, type, max_slots, importance, impressions_per_day, value_per_day, is_active FROM assets ORDER BY name ASC'
     );
     return result.rows;
   },
 
   async findById(id) {
     const result = await db.query(
-      'SELECT id, name, location, type, max_slots, is_active FROM assets WHERE id = $1',
+      'SELECT id, name, location, type, max_slots, importance, impressions_per_day, value_per_day, is_active FROM assets WHERE id = $1',
       [id]
     );
     return result.rows[0];
@@ -42,7 +42,7 @@ const Asset = {
     const query = `
       UPDATE assets SET ${fields.join(', ')}
       WHERE id = $${idx}
-      RETURNING id, name, location, type, max_slots, is_active
+      RETURNING id, name, location, type, max_slots, importance, impressions_per_day, value_per_day, is_active
     `;
 
     const result = await db.query(query, values);

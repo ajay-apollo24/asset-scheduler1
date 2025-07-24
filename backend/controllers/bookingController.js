@@ -13,6 +13,13 @@ const BookingController = {
     }
 
     try {
+      // Validate asset exists & fetch extra metadata
+      const Asset = require('../models/Asset');
+      const asset = await Asset.findById(asset_id);
+      if (!asset) {
+        return res.status(404).json({ message: 'Asset not found' });
+      }
+
       // Core date-overlap conflicts
       const conflicts = await Booking.findConflicts(asset_id, start_date, end_date);
       if (conflicts.length > 0) {
@@ -21,7 +28,7 @@ const BookingController = {
 
       // Rule-engine validation (additional fairness constraints)
       const { validateBookingRules } = require('../utils/ruleEngine');
-      const ruleErrors = await validateBookingRules({ asset_id, lob, purpose, start_date, end_date });
+      const ruleErrors = await validateBookingRules({ asset_id, lob, purpose, start_date, end_date, asset_type: asset.type });
       if (ruleErrors.length) {
         return res.status(422).json({ message: 'Rule validation failed', errors: ruleErrors });
       }
@@ -36,6 +43,11 @@ const BookingController = {
         end_date,
         status: 'pending'
       });
+
+      // append estimated cost to response (value_per_day * days)
+      const { differenceInCalendarDays, parseISO } = require('date-fns');
+      const spanDays = differenceInCalendarDays(parseISO(end_date), parseISO(start_date)) + 1;
+      booking.estimated_cost = spanDays * (asset.value_per_day || 0);
 
       await AuditLog.create({
         user_id,

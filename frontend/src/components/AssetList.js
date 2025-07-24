@@ -7,6 +7,8 @@ const AssetList = ({ assets }) => {
           <h2 className="text-lg font-bold mb-1">{asset.name}</h2>
           <p className="text-sm text-gray-600 mb-1">{asset.location} • {asset.type}</p>
           <p className="text-sm">Slots: {asset.max_slots}</p>
+          <p className="text-sm">Importance: {asset.importance}</p>
+          <p className="text-sm">Value/Day: ${asset.value_per_day}</p>
           <p className={`text-sm ${asset.is_active ? 'text-green-600' : 'text-red-600'}`}>
             {asset.is_active ? 'Active' : 'Inactive'}
           </p>

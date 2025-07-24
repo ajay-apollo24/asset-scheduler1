@@ -3,7 +3,7 @@ import { useState } from 'react';
 import apiClient from '../api/apiClient';
 
 const AssetForm = ({ onCreated }) => {
-  const [form, setForm] = useState({ name: '', location: '', type: '', max_slots: 1 });
+  const [form, setForm] = useState({ name: '', location: '', type: '', max_slots: 1, importance: 1, impressions_per_day: 0, value_per_day: 0 });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -28,7 +28,7 @@ const AssetForm = ({ onCreated }) => {
       <h2 className="text-lg font-semibold mb-4">New Asset</h2>
       {error && <p className="text-red-600">{error}</p>}
       {success && <p className="text-green-600">{success}</p>}
-      {['name', 'location', 'type'].map((field) => (
+      {['name', 'location', 'type', 'importance', 'impressions_per_day', 'value_per_day'].map((field) => (
         <div key={field} className="mb-3">
           <label className="block text-sm mb-1 capitalize">{field}</label>
           <input name={field} value={form[field]} onChange={handleChange} className="w-full border px-3 py-2 rounded" />

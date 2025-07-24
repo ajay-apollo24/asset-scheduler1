@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 
 const AssetController = {
   async create(req, res) {
-    const { name, location, type, max_slots, is_active } = req.body;
+    const { name, location, type, max_slots, importance, impressions_per_day, value_per_day, is_active } = req.body;
 
     if (!name || !location || !type || max_slots == null) {
       return res.status(400).json({ message: 'name, location, type, and max_slots are required' });
@@ -16,6 +16,9 @@ const AssetController = {
         location,
         type,
         max_slots,
+        importance: importance ?? 1,
+        impressions_per_day: impressions_per_day ?? 0,
+        value_per_day: value_per_day ?? 0,
         is_active: is_active ?? true
       });
       res.status(201).json(asset);
