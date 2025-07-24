@@ -12,7 +12,7 @@ function validateEmail(email) {
   }
   
   function validateRole(role) {
-    return ['admin', 'requestor'].includes(role);
+    return ['admin', 'requestor', 'marketing_ops'].includes(role);
   }
   
   module.exports = {

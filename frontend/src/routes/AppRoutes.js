@@ -7,6 +7,7 @@ import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import Assets from '../pages/Assets';
 import Bookings from '../pages/Bookings';
+import Approvals from '../pages/Approvals';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -34,6 +35,11 @@ const AppRoutes = () => {
         <Route path="/bookings" element={
           <PrivateRoute>
             <Bookings />
+          </PrivateRoute>
+        } />
+        <Route path="/approvals" element={
+          <PrivateRoute>
+            <Approvals />
           </PrivateRoute>
         } />
       </Routes>

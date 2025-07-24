@@ -27,6 +27,7 @@ const Layout = ({ children }) => {
         <Link to="/" className="hover:underline">Dashboard</Link>
         <Link to="/assets" className="hover:underline">Assets</Link>
         <Link to="/bookings" className="hover:underline">Bookings</Link>
+        <Link to="/approvals" className="hover:underline">Approvals</Link>
       </nav>
 
       <main className="flex-1 p-6">{children}</main>
