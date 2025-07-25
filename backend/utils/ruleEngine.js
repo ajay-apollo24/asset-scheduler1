@@ -27,6 +27,7 @@ const ruleConfig = require('../config/ruleConfig.json');
  */
 async function validateBookingRules(booking) {
   const errors = [];
+  const currentId = String(booking.id);
 
   // 1. Max days per booking
   if (ruleConfig.maxDaysPerBooking.enabled) {
@@ -63,7 +64,8 @@ async function validateBookingRules(booking) {
       from.toISOString().slice(0, 10),
       to.toISOString().slice(0, 10)
     );
-    const bookedDays = prev.reduce((sum, b) => {
+    const filteredPrev = prev.filter((b) => String(b.id) !== currentId);
+    const bookedDays = filteredPrev.reduce((sum, b) => {
       const s = toDate(b.start_date);
       const e = toDate(b.end_date);
       return sum + (differenceInCalendarDays(e, s) + 1);
@@ -85,7 +87,7 @@ async function validateBookingRules(booking) {
   // 5. Cool-down period between repeat bookings
   if (ruleConfig.cooldownPeriod.enabled) {
     const last = await Booking.findLastBookingByAssetLOB(booking.asset_id, booking.lob);
-    if (last) {
+    if (last && String(last.id) !== currentId) {
       const gapStart = addDays(toDate(last.end_date), ruleConfig.cooldownPeriod.days);
       if (isBefore(toDate(booking.start_date), gapStart)) {
         errors.push(`Need a ${ruleConfig.cooldownPeriod.days}-day gap after previous booking for same asset & LOB`);
@@ -95,7 +97,7 @@ async function validateBookingRules(booking) {
 
   // 6. Concurrent booking cap per LOB
   if (ruleConfig.concurrentBookingCap.enabled) {
-    const active = await Booking.findActiveByLOB(booking.lob, booking.start_date);
+    const active = (await Booking.findActiveByLOB(booking.lob, booking.start_date)).filter((b)=>String(b.id)!==currentId);
     if (active.length >= ruleConfig.concurrentBookingCap.maxActive) {
       errors.push(`LOB already has ${active.length} active bookings – limit is ${ruleConfig.concurrentBookingCap.maxActive}`);
     }
@@ -119,12 +121,13 @@ async function validateBookingRules(booking) {
   if (ruleConfig.percentageShareCap.enabled) {
     const startQ = startOfQuarter(toDate(booking.start_date));
     const endQ = endOfQuarter(toDate(booking.start_date));
-    const prev = await Booking.findByAssetLOBWithinWindow(
+    const prevRaw = await Booking.findByAssetLOBWithinWindow(
       booking.asset_id,
       booking.lob,
       startQ.toISOString().slice(0, 10),
       endQ.toISOString().slice(0, 10)
     );
+    const prev = prevRaw.filter((b)=>String(b.id)!==currentId);
     const totalQuarterDays = differenceInCalendarDays(endQ, startQ) + 1;
     const bookedByLOB = prev.reduce((sum, b) => {
       const s = toDate(b.start_date);
@@ -141,12 +144,13 @@ async function validateBookingRules(booking) {
   if (ruleConfig.purposeDuplication.enabled && booking.purpose) {
     const { windowDays } = ruleConfig.purposeDuplication;
     const from = subDays(toDate(booking.start_date), windowDays);
-    const dupes = await Booking.findByAssetPurposeWithinWindow(
+    const dupesAll = await Booking.findByAssetPurposeWithinWindow(
       booking.asset_id,
       booking.purpose,
       from.toISOString().slice(0, 10),
       booking.end_date
     );
+    const dupes = dupesAll.filter((b)=>String(b.id)!==currentId);
     if (dupes.length > 0) {
       errors.push('Identical purpose used recently for this asset – please vary campaign or wait for window to pass');
     }

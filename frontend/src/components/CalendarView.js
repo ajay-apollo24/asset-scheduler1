@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import AgendaEventRow from './AgendaEventRow';
 import AgendaPlus from './AgendaPlus';
 import apiClient from '../api/apiClient';
+import { format as formatDateFn } from 'date-fns';
 
 const locales = {
   'en-US': enUS,
@@ -101,8 +102,8 @@ const CalendarView = () => {
   const updateBooking = async (event, start, end) => {
     try {
       await apiClient.put(`/bookings/${event.id}/dates`, {
-        start_date: start.toISOString().slice(0, 10),
-        end_date: end.toISOString().slice(0, 10),
+        start_date: formatDateFn(start, 'yyyy-MM-dd'),
+        end_date: formatDateFn(end, 'yyyy-MM-dd'),
       });
       // refresh
       const res = await apiClient.get('/bookings');
@@ -117,7 +118,12 @@ const CalendarView = () => {
       }));
       setEvents(calendarEvents);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update booking');
+      if (err.response && err.response.data) {
+        const { message, errors } = err.response.data;
+        alert((errors && errors.join('\n')) || message || 'Failed to update booking');
+      } else {
+        alert('Failed to update booking');
+      }
     }
   };
 

@@ -161,6 +161,7 @@ const BookingController = {
 
       const { validateBookingRules } = require('../utils/ruleEngine');
       const ruleErrors = await validateBookingRules({
+        id,
         asset_id: booking.asset_id,
         lob: booking.lob,
         purpose: booking.purpose,
