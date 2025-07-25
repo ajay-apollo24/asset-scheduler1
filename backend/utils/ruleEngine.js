@@ -11,71 +11,14 @@ const {
   endOfQuarter,
 } = require('date-fns');
 
-/**
- * Configuration for rule parameters (can later be loaded from DB).
- */
-const ruleConfig = {
-  maxDaysPerBooking: {
-    enabled: true,
-    maxDays: 7
-  },
-  noConsecutiveSameAssetLOB: {
-    enabled: true
-  },
+function toDate(value) {
+  if (value instanceof Date) return value;
+  if (typeof value === 'string') return parseISO(value);
+  return new Date(value);
+}
 
-  // Rolling-window quota (per asset+LOB)
-  rollingWindowQuota: {
-    enabled: true,
-    windowDays: 30,
-    maxDays: 14
-  },
-
-  // Minimum lead-time before start date
-  minLeadTime: {
-    enabled: true,
-    days: 3
-  },
-
-  // Cool-down period between repeat bookings for same asset+LOB
-  cooldownPeriod: {
-    enabled: true,
-    days: 3
-  },
-
-  // Max concurrent active bookings for an LOB
-  concurrentBookingCap: {
-    enabled: true,
-    maxActive: 2
-  },
-
-  // Black-out dates (no bookings allowed)
-  blackoutDates: {
-    enabled: true,
-    dates: ['2024-12-25', '2024-12-31'] // ISO strings, extend as needed
-  },
-
-  // Percentage share cap of available days in a quarter
-  percentageShareCap: {
-    enabled: true,
-    percent: 0.4 // 40 %
-  },
-
-  // Purpose duplication guard
-  purposeDuplication: {
-    enabled: true,
-    windowDays: 30
-  },
-
-  // Asset-type exclusivity (allowed LOBs per asset type)
-  assetTypeExclusivity: {
-    enabled: true,
-    allowed: {
-      // example
-      Takeover: ['Marketing', 'Growth'],
-      Banner: ['Growth', 'CRM', 'Brand']
-    }
-  },
-};
+// Load rule parameters from external JSON so they can be edited without code changes
+const ruleConfig = require('../config/ruleConfig.json');
 
 /**
  * Validates a booking object against all active rules.
@@ -112,8 +55,8 @@ async function validateBookingRules(booking) {
   // 3. Rolling window quota (days booked by this LOB on this asset in last N days)
   if (ruleConfig.rollingWindowQuota.enabled) {
     const { windowDays, maxDays } = ruleConfig.rollingWindowQuota;
-    const from = subDays(parseISO(booking.start_date), windowDays);
-    const to = parseISO(booking.end_date);
+    const from = subDays(toDate(booking.start_date), windowDays);
+    const to = toDate(booking.end_date);
     const prev = await Booking.findByAssetLOBWithinWindow(
       booking.asset_id,
       booking.lob,
@@ -121,11 +64,11 @@ async function validateBookingRules(booking) {
       to.toISOString().slice(0, 10)
     );
     const bookedDays = prev.reduce((sum, b) => {
-      const s = parseISO(b.start_date);
-      const e = parseISO(b.end_date);
+      const s = toDate(b.start_date);
+      const e = toDate(b.end_date);
       return sum + (differenceInCalendarDays(e, s) + 1);
     }, 0);
-    if (bookedDays + (differenceInCalendarDays(to, parseISO(booking.start_date)) + 1) > maxDays) {
+    if (bookedDays + (differenceInCalendarDays(to, toDate(booking.start_date)) + 1) > maxDays) {
       errors.push(`Rolling window quota exceeded: max ${maxDays} days in ${windowDays}-day window`);
     }
   }
@@ -134,7 +77,7 @@ async function validateBookingRules(booking) {
   if (ruleConfig.minLeadTime.enabled) {
     const now = startOfDay(new Date());
     const minStart = addDays(now, ruleConfig.minLeadTime.days);
-    if (isBefore(parseISO(booking.start_date), minStart)) {
+    if (isBefore(toDate(booking.start_date), minStart)) {
       errors.push(`Bookings must be created at least ${ruleConfig.minLeadTime.days} days in advance`);
     }
   }
@@ -143,8 +86,8 @@ async function validateBookingRules(booking) {
   if (ruleConfig.cooldownPeriod.enabled) {
     const last = await Booking.findLastBookingByAssetLOB(booking.asset_id, booking.lob);
     if (last) {
-      const gapStart = addDays(parseISO(last.end_date), ruleConfig.cooldownPeriod.days);
-      if (isBefore(parseISO(booking.start_date), gapStart)) {
+      const gapStart = addDays(toDate(last.end_date), ruleConfig.cooldownPeriod.days);
+      if (isBefore(toDate(booking.start_date), gapStart)) {
         errors.push(`Need a ${ruleConfig.cooldownPeriod.days}-day gap after previous booking for same asset & LOB`);
       }
     }
@@ -174,8 +117,8 @@ async function validateBookingRules(booking) {
 
   // 8. Percentage share cap in the quarter
   if (ruleConfig.percentageShareCap.enabled) {
-    const startQ = startOfQuarter(parseISO(booking.start_date));
-    const endQ = endOfQuarter(parseISO(booking.start_date));
+    const startQ = startOfQuarter(toDate(booking.start_date));
+    const endQ = endOfQuarter(toDate(booking.start_date));
     const prev = await Booking.findByAssetLOBWithinWindow(
       booking.asset_id,
       booking.lob,
@@ -184,11 +127,11 @@ async function validateBookingRules(booking) {
     );
     const totalQuarterDays = differenceInCalendarDays(endQ, startQ) + 1;
     const bookedByLOB = prev.reduce((sum, b) => {
-      const s = parseISO(b.start_date);
-      const e = parseISO(b.end_date);
+      const s = toDate(b.start_date);
+      const e = toDate(b.end_date);
       return sum + (differenceInCalendarDays(e, s) + 1);
     }, 0);
-    const currentSpan = differenceInCalendarDays(parseISO(booking.end_date), parseISO(booking.start_date)) + 1;
+    const currentSpan = differenceInCalendarDays(toDate(booking.end_date), toDate(booking.start_date)) + 1;
     if ((bookedByLOB + currentSpan) / totalQuarterDays > ruleConfig.percentageShareCap.percent) {
       errors.push(`LOB exceeds ${ruleConfig.percentageShareCap.percent * 100}% share of asset days in this quarter`);
     }
@@ -197,7 +140,7 @@ async function validateBookingRules(booking) {
   // 9. Purpose duplication guard
   if (ruleConfig.purposeDuplication.enabled && booking.purpose) {
     const { windowDays } = ruleConfig.purposeDuplication;
-    const from = subDays(parseISO(booking.start_date), windowDays);
+    const from = subDays(toDate(booking.start_date), windowDays);
     const dupes = await Booking.findByAssetPurposeWithinWindow(
       booking.asset_id,
       booking.purpose,

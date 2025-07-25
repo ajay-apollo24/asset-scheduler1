@@ -2,12 +2,12 @@
 const db = require('../config/db');
 
 const Booking = {
-  async create({ asset_id, user_id, title, lob, purpose, start_date, end_date, status = 'pending' }) {
+  async create({ asset_id, user_id, title, lob, purpose, creative_url = null, start_date, end_date, status = 'pending' }) {
     const result = await db.query(
-      `INSERT INTO bookings (asset_id, user_id, title, lob, purpose, start_date, end_date, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, asset_id, user_id, title, lob, purpose, start_date, end_date, status`,
-      [asset_id, user_id, title, lob, purpose, start_date, end_date, status]
+      `INSERT INTO bookings (asset_id, user_id, title, lob, purpose, creative_url, start_date, end_date, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, asset_id, user_id, title, lob, purpose, creative_url, start_date, end_date, status`,
+      [asset_id, user_id, title, lob, purpose, creative_url, start_date, end_date, status]
     );
     return result.rows[0];
   },
@@ -18,6 +18,7 @@ const Booking = {
        FROM bookings b
        JOIN assets a ON b.asset_id = a.id
        JOIN users u ON b.user_id = u.id
+       WHERE b.is_deleted = false
        ORDER BY start_date DESC`
     );
     return result.rows;
@@ -25,7 +26,7 @@ const Booking = {
 
   async findById(id) {
     const result = await db.query(
-      `SELECT * FROM bookings WHERE id = $1`,
+      `SELECT * FROM bookings WHERE id = $1 AND is_deleted = false`,
       [id]
     );
     return result.rows[0];
@@ -49,6 +50,7 @@ const Booking = {
        WHERE asset_id = $1
          AND lob = $2
          AND status IN ('pending', 'approved')
+         AND is_deleted = false
          AND (
                end_date = DATE($3) - INTERVAL '1 day'
             OR start_date = DATE($4) + INTERVAL '1 day'
@@ -63,6 +65,7 @@ const Booking = {
       `SELECT * FROM bookings
        WHERE asset_id = $1
          AND status IN ('pending', 'approved')
+         AND is_deleted = false
          AND NOT (end_date < $2 OR start_date > $3)`,
       [asset_id, start_date, end_date]
     );
@@ -76,6 +79,7 @@ const Booking = {
        WHERE asset_id = $1
          AND lob = $2
          AND status IN ('pending', 'approved')
+         AND is_deleted = false
          AND NOT (end_date < $3 OR start_date > $4)`,
       [asset_id, lob, from_date, to_date]
     );
@@ -88,6 +92,7 @@ const Booking = {
       `SELECT * FROM bookings
        WHERE lob = $1
          AND status IN ('pending', 'approved')
+         AND is_deleted = false
          AND start_date <= $2 AND end_date >= $2`,
       [lob, refDate]
     );
@@ -112,10 +117,19 @@ const Booking = {
        WHERE asset_id = $1
          AND purpose = $2
          AND status IN ('pending', 'approved')
+         AND is_deleted = false
          AND NOT (end_date < $3 OR start_date > $4)`,
       [asset_id, purpose, from_date, to_date]
     );
     return result.rows;
+  },
+
+  async softDelete(id) {
+    const result = await db.query(
+      `UPDATE bookings SET is_deleted = true, status = 'deleted' WHERE id = $1 RETURNING *`,
+      [id]
+    );
+    return result.rows[0];
   },
 };
 

@@ -1,0 +1,55 @@
+{
+  "maxDaysPerBooking": {
+    "enabled": true,
+    "maxDays": 7
+  },
+  "noConsecutiveSameAssetLOB": {
+    "enabled": true
+  },
+  "rollingWindowQuota": {
+    "enabled": true,
+    "windowDays": 30,
+    "maxDays": 14
+  },
+  "minLeadTime": {
+    "enabled": true,
+    "days": 3
+  },
+  "cooldownPeriod": {
+    "enabled": true,
+    "days": 3
+  },
+  "concurrentBookingCap": {
+    "enabled": true,
+    "maxActive": 2
+  },
+  "blackoutDates": {
+    "enabled": true,
+    "dates": [
+      "2024-12-25",
+      "2024-12-31"
+    ]
+  },
+  "percentageShareCap": {
+    "enabled": true,
+    "percent": 0.4
+  },
+  "purposeDuplication": {
+    "enabled": true,
+    "windowDays": 30
+  },
+  "assetTypeExclusivity": {
+    "enabled": false,
+    "allowed": {
+      "Takeover": [
+        "Marketing",
+        "Growth"
+      ],
+      "Banner": [
+        "Growth",
+        "CRM",
+        "Brand"
+      ]
+    }
+  }
+}

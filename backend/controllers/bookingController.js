@@ -5,7 +5,7 @@ const logger = require('../utils/logger');
 
 const BookingController = {
   async create(req, res) {
-    const { asset_id, title, lob, purpose, start_date, end_date } = req.body;
+    const { asset_id, title, lob, purpose, creative_url, start_date, end_date } = req.body;
     const user_id = req.user.user_id;
 
     if (!asset_id || !title || !lob || !purpose || !start_date || !end_date) {
@@ -39,6 +39,7 @@ const BookingController = {
         title,
         lob,
         purpose,
+        creative_url,
         start_date,
         end_date,
         status: 'pending'
@@ -113,6 +114,22 @@ const BookingController = {
     } catch (err) {
       logger.error(err);
       res.status(500).json({ message: 'Failed to update booking status' });
+    }
+  },
+
+  async delete(req, res) {
+    const { id } = req.params;
+    const userRole = req.user.role;
+    if (userRole !== 'admin') {
+      return res.status(403).json({ message: 'Only admin can delete bookings' });
+    }
+
+    try {
+      const deleted = await Booking.softDelete(id);
+      res.json(deleted);
+    } catch (err) {
+      logger.error(err);
+      res.status(500).json({ message: 'Failed to delete booking' });
     }
   }
 };

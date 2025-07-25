@@ -8,5 +8,6 @@ router.post('/', authMiddleware, BookingController.create);             // Creat
 router.get('/', authMiddleware, BookingController.getAll);              // List all bookings
 router.get('/:id', authMiddleware, BookingController.getById);          // Get one booking
 router.put('/:id/status', authMiddleware, BookingController.updateStatus); // Approve/reject
+router.delete('/:id', authMiddleware, BookingController.delete); // soft delete
 
 module.exports = router;

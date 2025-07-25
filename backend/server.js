@@ -18,6 +18,7 @@ const userRoutes = require('./routes/userRoutes');
 const assetRoutes = require('./routes/assetRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const approvalRoutes = require('./routes/approvalRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 // Middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -28,6 +29,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/assets', assetRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/approvals', approvalRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Fallback
 app.use((req, res) => {

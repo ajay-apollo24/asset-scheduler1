@@ -55,7 +55,7 @@ const BookingForm = ({ onCreated }) => {
           ))}
         </select>
       </div>
-      {['title', 'lob', 'purpose', 'start_date', 'end_date'].map((field) => (
+      {['title', 'purpose', 'creative_url', 'start_date', 'end_date'].map((field) => (
         <div key={field} className="mb-3">
           <label className="block text-sm mb-1 capitalize">{field.replace('_', ' ')}</label>
           <input
@@ -67,6 +67,22 @@ const BookingForm = ({ onCreated }) => {
           />
         </div>
       ))}
+
+      {/* LOB select */}
+      <div className="mb-3">
+        <label className="block text-sm mb-1">Line of Business (LOB)</label>
+        <select
+          name="lob"
+          value={form.lob}
+          onChange={handleChange}
+          className="w-full border px-3 py-2 rounded"
+        >
+          <option value="">Select LOB</option>
+          {['Pharmacy','Diagnostics','Insurance','Consult','Credit Card','Monetization','Ask Apollo','Circle'].map((lob) => (
+            <option key={lob} value={lob}>{lob}</option>
+          ))}
+        </select>
+      </div>
       <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Submit</button>
     </form>
   );
