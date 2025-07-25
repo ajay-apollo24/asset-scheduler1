@@ -13,22 +13,22 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
-      <header className="bg-white shadow px-6 py-4 flex justify-between items-center">
-        <div className="text-xl font-semibold">Asset Scheduler</div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-700">Hi, {user?.email}</span>
-          <button onClick={handleLogout} className="text-red-600 text-sm hover:underline">
-            Logout
-          </button>
+      <header className="navbar bg-base-100 shadow px-6">
+        <div className="flex-1">
+          <a className="text-xl font-bold">Asset Scheduler</a>
+        </div>
+        <div className="flex-none gap-4">
+          <span className="text-sm">Hi, {user?.email}</span>
+          <button onClick={handleLogout} className="btn btn-sm btn-error text-white">Logout</button>
         </div>
       </header>
 
-      <nav className="bg-gray-200 px-6 py-2 flex gap-6 text-sm font-medium text-gray-700">
-        <Link to="/" className="hover:underline">Dashboard</Link>
-        <Link to="/assets" className="hover:underline">Assets</Link>
-        <Link to="/bookings" className="hover:underline">Bookings</Link>
-        <Link to="/approvals" className="hover:underline">Approvals</Link>
-        <Link to="/reports" className="hover:underline">Reports</Link>
+      <nav className="bg-base-200 px-6 py-2 flex gap-2 text-sm">
+        <Link to="/" className="btn btn-ghost btn-sm">Dashboard</Link>
+        <Link to="/assets" className="btn btn-ghost btn-sm">Assets</Link>
+        <Link to="/bookings" className="btn btn-ghost btn-sm">Bookings</Link>
+        <Link to="/approvals" className="btn btn-ghost btn-sm">Approvals</Link>
+        <Link to="/reports" className="btn btn-ghost btn-sm">Reports</Link>
       </nav>
 
       <main className="flex-1 p-6">{children}</main>

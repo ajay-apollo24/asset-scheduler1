@@ -42,10 +42,10 @@ const BookingForm = ({ onCreated }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-4 shadow rounded-xl mb-6">
+    <form onSubmit={handleSubmit} className="card bg-base-100 shadow p-6">
       <h2 className="text-lg font-semibold mb-4">Request Booking</h2>
-      {error && <p className="text-red-600">{error}</p>}
-      {success && <p className="text-green-600">{success}</p>}
+      {error && <div className="alert alert-error text-sm mb-2">{error}</div>}
+      {success && <div className="alert alert-success text-sm mb-2">{success}</div>}
       <div className="mb-3">
         <label className="block text-sm mb-1">Asset</label>
         <select name="asset_id" value={form.asset_id} onChange={handleChange} className="w-full border px-3 py-2 rounded">

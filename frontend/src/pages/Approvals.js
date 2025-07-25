@@ -27,7 +27,7 @@ const Approvals = () => {
     <Layout>
       <h1 className="text-2xl font-semibold mb-6">Pending Approvals</h1>
       {error && <p className="text-red-600">{error}</p>}
-      <table className="min-w-full bg-white shadow rounded-xl">
+      <table className="table w-full shadow">
         <thead>
           <tr className="bg-gray-100 text-left text-sm">
             <th className="p-2">Booking</th>
@@ -43,8 +43,8 @@ const Approvals = () => {
               <td className="p-2">{a.start_date} → {a.end_date}</td>
               <td className="p-2">{a.requester_email}</td>
               <td className="p-2 space-x-2">
-                <button onClick={() => act(a.id, 'approved')} className="px-3 py-1 bg-green-600 text-white rounded">Approve</button>
-                <button onClick={() => act(a.id, 'rejected')} className="px-3 py-1 bg-red-600 text-white rounded">Reject</button>
+                <button onClick={() => act(a.id, 'approved')} className="btn btn-sm btn-success">Approve</button>
+                <button onClick={() => act(a.id, 'rejected')} className="btn btn-sm btn-error">Reject</button>
               </td>
             </tr>
           ))}

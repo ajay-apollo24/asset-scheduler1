@@ -9,6 +9,7 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.11.0",
+    "daisyui": "^5.0.46",
     "date-fns": "^4.1.0",
     "react": "^19.1.0",
     "react-big-calendar": "^1.19.4",

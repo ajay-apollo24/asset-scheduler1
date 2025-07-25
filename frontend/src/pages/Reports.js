@@ -22,9 +22,9 @@ const Reports = () => {
       <div className="flex gap-2 mb-4">
         <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="border p-2 rounded" />
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="border p-2 rounded" />
-        <button onClick={fetchData} className="bg-blue-600 text-white px-4 py-2 rounded">Run</button>
+        <button onClick={fetchData} className="btn btn-primary">Run</button>
       </div>
-      <table className="min-w-full bg-white shadow rounded-xl">
+      <table className="table w-full shadow">
         <thead>
           <tr className="bg-gray-100 text-left text-sm">
             <th className="p-2">LOB</th>

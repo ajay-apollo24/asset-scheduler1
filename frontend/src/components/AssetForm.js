@@ -30,8 +30,10 @@ const AssetForm = ({ onCreated }) => {
       {success && <p className="text-green-600">{success}</p>}
       {['name', 'location', 'type', 'importance', 'impressions_per_day', 'value_per_day'].map((field) => (
         <div key={field} className="mb-3">
-          <label className="block text-sm mb-1 capitalize">{field}</label>
-          <input name={field} value={form[field]} onChange={handleChange} className="w-full border px-3 py-2 rounded" />
+          <label className="label">
+            <span className="label-text capitalize">{field.replace('_',' ')}</span>
+          </label>
+          <input name={field} value={form[field]} onChange={handleChange} className="input input-bordered w-full" />
         </div>
       ))}
       <div className="mb-3">
@@ -45,7 +47,7 @@ const AssetForm = ({ onCreated }) => {
           className="w-full border px-3 py-2 rounded"
         />
       </div>
-      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">Create</button>
+      <button type="submit" className="btn btn-primary">Create Asset</button>
     </form>
   );
 };

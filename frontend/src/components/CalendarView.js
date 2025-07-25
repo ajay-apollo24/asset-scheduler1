@@ -36,6 +36,7 @@ const CalendarView = () => {
   const [selectedAssets, setSelectedAssets] = useState([]); // array of id
   const [lobs, setLobs] = useState([]);
   const [selectedLobs, setSelectedLobs] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Keep track of the current date being displayed and the active view (month / week / day)
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -96,12 +97,17 @@ const CalendarView = () => {
   return (
     <div className="bg-white p-4 rounded-xl shadow">
       <h2 className="text-lg font-semibold mb-4">Booking Calendar</h2>
-      {/* Filters */}
-      <div className="flex gap-4 mb-4">
+      {/* Filter toggle */}
+      <button onClick={() => setShowFilters(!showFilters)} className="mb-4 btn btn-sm btn-outline">
+        {showFilters ? 'Hide Filters' : 'Show Filters'}
+      </button>
+
+      {showFilters && (
+      <div className="flex gap-4 mb-4 transition-all">
         {/* LOB filter */}
         <div>
           <label className="block text-sm font-medium mb-1">LOB Filter</label>
-          <select multiple value={selectedLobs} onChange={handleLobChange} className="border p-2 rounded h-28 w-40">
+          <select multiple value={selectedLobs} onChange={handleLobChange} className="select select-bordered h-32 w-48" size={8}>
             {lobs.map((lob) => (
               <option key={lob} value={lob}>{lob}</option>
             ))}
@@ -110,13 +116,13 @@ const CalendarView = () => {
         {/* Asset filter */}
         <div>
           <label className="block text-sm font-medium mb-1">Asset Filter</label>
-          <select multiple value={selectedAssets} onChange={handleAssetChange} className="border p-2 rounded h-28 w-40">
+          <select multiple value={selectedAssets} onChange={handleAssetChange} className="select select-bordered h-32 w-48" size={8}>
             {assets.map((a) => (
               <option key={a.id} value={a.name}>{a.name}</option>
             ))}
           </select>
         </div>
-      </div>
+      </div>) }
 
       <Calendar
         localizer={localizer}
@@ -144,10 +150,11 @@ const CalendarView = () => {
       {selectedEvent && (
         <Modal onClose={() => setSelectedEvent(null)}>
           <h3 className="text-lg font-semibold mb-2">{selectedEvent.title}</h3>
+          <p><strong>Asset:</strong> {selectedEvent.asset_name}</p>
           <p><strong>LOB:</strong> {selectedEvent.lob}</p>
           <p><strong>Purpose:</strong> {selectedEvent.purpose}</p>
           <p><strong>Status:</strong> {selectedEvent.status}</p>
-          <p><strong>Dates:</strong> {selectedEvent.start_date} → {selectedEvent.end_date}</p>
+          <p><strong>Dates:</strong> {format(new Date(selectedEvent.start_date), 'PP')} → {format(new Date(selectedEvent.end_date), 'PP')}</p>
           {selectedEvent.estimated_cost && <p><strong>Estimated cost:</strong> ${selectedEvent.estimated_cost}</p>}
           {selectedEvent.creative_url && (
             <p className="mt-2"><a href={selectedEvent.creative_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View creative</a></p>
