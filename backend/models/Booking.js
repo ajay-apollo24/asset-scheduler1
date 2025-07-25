@@ -131,6 +131,14 @@ const Booking = {
     );
     return result.rows[0];
   },
+
+  async updateDates(id, start_date, end_date) {
+    const result = await db.query(
+      `UPDATE bookings SET start_date = $2, end_date = $3 WHERE id = $1 RETURNING *`,
+      [id, start_date, end_date]
+    );
+    return result.rows[0];
+  },
 };
 
 module.exports = Booking;

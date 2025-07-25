@@ -40,7 +40,8 @@ const AgendaPlus = ({ events, range, date, localizer }) => {
     );
 
   return (
-    <table className="rbc-agenda-table min-w-full bg-white text-sm">
+    <div className="overflow-x-auto">
+      <table className="table table-zebra w-full text-sm">
       <thead>
         <tr className="bg-gray-100 text-left">
           <th className="p-2 w-32">Date</th>
@@ -79,6 +80,7 @@ const AgendaPlus = ({ events, range, date, localizer }) => {
         })}
       </tbody>
     </table>
+    </div>
   );
 };
 

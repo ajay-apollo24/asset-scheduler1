@@ -9,5 +9,6 @@ router.get('/', authMiddleware, BookingController.getAll);              // List 
 router.get('/:id', authMiddleware, BookingController.getById);          // Get one booking
 router.put('/:id/status', authMiddleware, BookingController.updateStatus); // Approve/reject
 router.delete('/:id', authMiddleware, BookingController.delete); // soft delete
+router.put('/:id/dates', authMiddleware, BookingController.updateDates); // drag/resize
 
 module.exports = router;

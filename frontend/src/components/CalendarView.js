@@ -1,5 +1,7 @@
 // src/components/CalendarView.js
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import format from 'date-fns/format';
 import parse from 'date-fns/parse';
 import startOfWeek from 'date-fns/startOfWeek';
@@ -94,6 +96,31 @@ const CalendarView = () => {
     Circle: '#0d9488',
   };
 
+  const DnDCalendar = withDragAndDrop(Calendar);
+
+  const updateBooking = async (event, start, end) => {
+    try {
+      await apiClient.put(`/bookings/${event.id}/dates`, {
+        start_date: start.toISOString().slice(0, 10),
+        end_date: end.toISOString().slice(0, 10),
+      });
+      // refresh
+      const res = await apiClient.get('/bookings');
+      const calendarEvents = res.data.map((b) => ({
+        id: b.id,
+        title: `${b.title}`,
+        asset_name: b.asset_name,
+        lob: b.lob,
+        start: new Date(b.start_date),
+        end: new Date(b.end_date),
+        resource: b,
+      }));
+      setEvents(calendarEvents);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update booking');
+    }
+  };
+
   return (
     <div className="bg-white p-4 rounded-xl shadow">
       <h2 className="text-lg font-semibold mb-4">Booking Calendar</h2>
@@ -124,7 +151,7 @@ const CalendarView = () => {
         </div>
       </div>) }
 
-      <Calendar
+      <DnDCalendar
         localizer={localizer}
         events={filteredEvents}
         date={currentDate}
@@ -140,6 +167,8 @@ const CalendarView = () => {
           return { style: { backgroundColor: color, color: 'white' } };
         }}
         onSelectEvent={(event) => setSelectedEvent(event.resource)}
+        onEventDrop={({ event, start, end }) => updateBooking(event, start, end)}
+        onEventResize={({ event, start, end }) => updateBooking(event, start, end)}
         views={{ month: true, week: true, day: true, agenda: true, agendaPlus: AgendaPlus }}
         messages={{ agendaPlus: 'Agenda +' }}
         components={{

@@ -131,6 +131,52 @@ const BookingController = {
       logger.error(err);
       res.status(500).json({ message: 'Failed to delete booking' });
     }
+  },
+
+  // Update dates (drag/resized)
+  async updateDates(req, res) {
+    const { id } = req.params;
+    const { start_date, end_date } = req.body;
+    const user = req.user;
+
+    if (!start_date || !end_date) {
+      return res.status(400).json({ message: 'start_date and end_date required' });
+    }
+
+    try {
+      const booking = await Booking.findById(id);
+      if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+      // permission: owner or admin
+      if (user.role !== 'admin' && booking.user_id !== user.user_id) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+
+      // conflict & rule check
+      const conflicts = await Booking.findConflicts(booking.asset_id, start_date, end_date);
+      const otherConflicts = conflicts.filter((c) => c.id !== booking.id);
+      if (otherConflicts.length) {
+        return res.status(409).json({ message: 'Slot conflict', conflicts: otherConflicts });
+      }
+
+      const { validateBookingRules } = require('../utils/ruleEngine');
+      const ruleErrors = await validateBookingRules({
+        asset_id: booking.asset_id,
+        lob: booking.lob,
+        purpose: booking.purpose,
+        start_date,
+        end_date,
+      });
+      if (ruleErrors.length) {
+        return res.status(422).json({ message: 'Rule validation failed', errors: ruleErrors });
+      }
+
+      const updated = await Booking.updateDates(id, start_date, end_date);
+      res.json(updated);
+    } catch (err) {
+      logger.error(err);
+      res.status(500).json({ message: 'Failed to update booking dates' });
+    }
   }
 };
 
