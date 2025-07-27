@@ -4,14 +4,26 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const bodyParser = require('body-parser');
 const logger = require('./utils/logger');
+const fallbackMiddleware = require('./middleware/fallback');
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
+// Initialize app locals for fallback mechanisms
+app.locals.rateLimit = new Map();
+app.locals.responseCache = new Map();
+app.locals.cache = new Map();
+
 // Request logging middleware (must be first)
 app.use(logger.logRequest);
+
+// Fallback middleware
+app.use(fallbackMiddleware.databaseFallback);
+app.use(fallbackMiddleware.rateLimitFallback);
+app.use(fallbackMiddleware.responseCache(300000)); // 5 minutes
+app.use(fallbackMiddleware.healthCheckFallback);
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -39,13 +51,31 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/audit', auditRoutes);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  const healthStatus = req.app.locals.healthStatus || {
+    database: 'unknown',
+    externalServices: 'unknown',
+    lastCheck: Date.now()
+  };
+
+  const isHealthy = healthStatus.database === 'healthy';
+  
+  res.status(isHealthy ? 200 : 503).json({
+    status: isHealthy ? 'healthy' : 'unhealthy',
+    timestamp: new Date().toISOString(),
+    services: healthStatus
+  });
+});
+
 // Fallback
 app.use((req, res) => {
   logger.warn('404 Not Found', { path: req.path, method: req.method });
   res.status(404).json({ message: 'Not Found' });
 });
 
-// Error handler
+// Error handler with fallback recovery
+app.use(fallbackMiddleware.errorRecovery);
 app.use(errorHandler);
 
 // Start server
