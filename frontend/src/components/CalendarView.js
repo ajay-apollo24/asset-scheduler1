@@ -11,6 +11,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 import { useEffect, useState } from 'react';
 import Modal from './Modal';
+import BookingEditForm from './BookingEditForm';
 import { useAuth } from '../contexts/AuthContext';
 import AgendaEventRow from './AgendaEventRow';
 import AgendaPlus from './AgendaPlus';
@@ -32,6 +33,7 @@ const localizer = dateFnsLocalizer({
 const CalendarView = () => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
   const { user } = useAuth();
 
   // filters
@@ -127,6 +129,34 @@ const CalendarView = () => {
     }
   };
 
+  const refreshEvents = async () => {
+    const res = await apiClient.get('/bookings');
+    const calendarEvents = res.data.map((b) => ({
+      id: b.id,
+      title: `${b.title} [${b.lob}] (${b.status})`,
+      asset_name: b.asset_name,
+      lob: b.lob,
+      start: new Date(b.start_date),
+      end: new Date(b.end_date),
+      resource: b,
+    }));
+    setEvents(calendarEvents);
+  };
+
+  const handleEditBooking = () => {
+    setIsEditing(true);
+  };
+
+  const handleEditCancel = () => {
+    setIsEditing(false);
+  };
+
+  const handleEditSuccess = async () => {
+    await refreshEvents();
+    setIsEditing(false);
+    setSelectedEvent(null);
+  };
+
   return (
     <div className="bg-white p-4 rounded-xl shadow">
       <h2 className="text-lg font-semibold mb-4">Booking Calendar</h2>
@@ -184,47 +214,56 @@ const CalendarView = () => {
       />
       {selectedEvent && (
         <Modal onClose={() => setSelectedEvent(null)}>
-          <h3 className="text-lg font-semibold mb-2">{selectedEvent.title}</h3>
-          <p><strong>Asset:</strong> {selectedEvent.asset_name}</p>
-          <p><strong>Asset Level:</strong> 
-            <span className={`badge ml-2 ${
-              selectedEvent.asset_level === 'primary' ? 'badge-primary' :
-              selectedEvent.asset_level === 'secondary' ? 'badge-secondary' :
-              'badge-accent'
-            }`}>
-              {selectedEvent.asset_level}
-            </span>
-          </p>
-          <p><strong>LOB:</strong> {selectedEvent.lob}</p>
-          <p><strong>Purpose:</strong> {selectedEvent.purpose}</p>
-          <p><strong>Status:</strong> {selectedEvent.status}</p>
-          <p><strong>Dates:</strong> {format(new Date(selectedEvent.start_date), 'PP')} → {format(new Date(selectedEvent.end_date), 'PP')}</p>
-          {selectedEvent.estimated_cost && <p><strong>Estimated cost:</strong> ${selectedEvent.estimated_cost}</p>}
-          {selectedEvent.creative_url && (
-            <p className="mt-2"><a href={selectedEvent.creative_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View creative</a></p>
-          )}
-          {user?.role === 'admin' && (
-            <button
-              onClick={async () => {
-                if (window.confirm('Delete this booking?')) {
-                  await apiClient.delete(`/bookings/${selectedEvent.id}`);
-                  // Refresh events
-                  const res = await apiClient.get('/bookings');
-                  const calendarEvents = res.data.map((b) => ({
-                    id: b.id,
-                    title: `${b.title} [${b.lob}] (${b.status})`,
-                    start: new Date(b.start_date),
-                    end: new Date(b.end_date),
-                    resource: b,
-                  }));
-                  setEvents(calendarEvents);
-                  setSelectedEvent(null);
-                }
-              }}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded"
-            >
-              Delete Booking
-            </button>
+          {isEditing ? (
+            <BookingEditForm
+              booking={selectedEvent}
+              onUpdated={handleEditSuccess}
+              onCancel={handleEditCancel}
+            />
+          ) : (
+            <>
+              <h3 className="text-lg font-semibold mb-2">{selectedEvent.title}</h3>
+              <p><strong>Asset:</strong> {selectedEvent.asset_name}</p>
+              <p><strong>Asset Level:</strong> 
+                <span className={`badge ml-2 ${
+                  selectedEvent.asset_level === 'primary' ? 'badge-primary' :
+                  selectedEvent.asset_level === 'secondary' ? 'badge-secondary' :
+                  'badge-accent'
+                }`}>
+                  {selectedEvent.asset_level}
+                </span>
+              </p>
+              <p><strong>LOB:</strong> {selectedEvent.lob}</p>
+              <p><strong>Purpose:</strong> {selectedEvent.purpose}</p>
+              <p><strong>Status:</strong> {selectedEvent.status}</p>
+              <p><strong>Dates:</strong> {format(new Date(selectedEvent.start_date), 'PP')} → {format(new Date(selectedEvent.end_date), 'PP')}</p>
+              {selectedEvent.estimated_cost && <p><strong>Estimated cost:</strong> ${selectedEvent.estimated_cost}</p>}
+              {selectedEvent.creative_url && (
+                <p className="mt-2"><a href={selectedEvent.creative_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">View creative</a></p>
+              )}
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={handleEditBooking}
+                  className="btn btn-primary"
+                >
+                  Edit Booking
+                </button>
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={async () => {
+                      if (window.confirm('Delete this booking?')) {
+                        await apiClient.delete(`/bookings/${selectedEvent.id}`);
+                        await refreshEvents();
+                        setSelectedEvent(null);
+                      }
+                    }}
+                    className="btn btn-error"
+                  >
+                    Delete Booking
+                  </button>
+                )}
+              </div>
+            </>
           )}
         </Modal>
       )}

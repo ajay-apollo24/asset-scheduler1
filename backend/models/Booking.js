@@ -152,6 +152,28 @@ const Booking = {
     );
     return result.rows[0];
   },
+
+  async update(id, updates) {
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    for (const key in updates) {
+      fields.push(`${key} = $${idx}`);
+      values.push(updates[key]);
+      idx++;
+    }
+
+    values.push(id); // last value is the WHERE id
+    const query = `
+      UPDATE bookings SET ${fields.join(', ')}
+      WHERE id = $${idx}
+      RETURNING *
+    `;
+
+    const result = await db.query(query, values);
+    return result.rows[0];
+  },
 };
 
 module.exports = Booking;

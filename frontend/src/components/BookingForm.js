@@ -16,6 +16,19 @@ const BookingForm = ({ onCreated }) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const setQuickDates = (days) => {
+    const today = new Date();
+    const startDate = new Date(today);
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + days - 1);
+    
+    setForm({
+      ...form,
+      start_date: startDate.toISOString().slice(0, 10),
+      end_date: endDate.toISOString().slice(0, 10)
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -46,6 +59,7 @@ const BookingForm = ({ onCreated }) => {
       <h2 className="text-lg font-semibold mb-4">Request Booking</h2>
       {error && <div className="alert alert-error text-sm mb-2">{error}</div>}
       {success && <div className="alert alert-success text-sm mb-2">{success}</div>}
+      
       <div className="mb-3">
         <label className="block text-sm mb-1">Asset</label>
         <select name="asset_id" value={form.asset_id} onChange={handleChange} className="w-full border px-3 py-2 rounded">
@@ -55,12 +69,13 @@ const BookingForm = ({ onCreated }) => {
           ))}
         </select>
       </div>
-      {['title', 'purpose', 'creative_url', 'start_date', 'end_date'].map((field) => (
+      
+      {['title', 'purpose', 'creative_url'].map((field) => (
         <div key={field} className="mb-3">
           <label className="block text-sm mb-1 capitalize">{field.replace('_', ' ')}</label>
           <input
             name={field}
-            type={field.includes('date') ? 'date' : 'text'}
+            type={field.includes('url') ? 'url' : 'text'}
             value={form[field]}
             onChange={handleChange}
             className="w-full border px-3 py-2 rounded"
@@ -83,6 +98,61 @@ const BookingForm = ({ onCreated }) => {
           ))}
         </select>
       </div>
+
+      {/* Quick date buttons */}
+      <div className="mb-3">
+        <label className="block text-sm mb-1">Quick Schedule</label>
+        <div className="flex gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setQuickDates(1)}
+            className="btn btn-sm btn-outline"
+          >
+            Today (1 day)
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuickDates(3)}
+            className="btn btn-sm btn-outline"
+          >
+            This Week (3 days)
+          </button>
+          <button
+            type="button"
+            onClick={() => setQuickDates(7)}
+            className="btn btn-sm btn-outline"
+          >
+            Next Week (7 days)
+          </button>
+        </div>
+      </div>
+
+      {/* Date inputs */}
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label className="block text-sm mb-1">Start Date</label>
+          <input
+            name="start_date"
+            type="date"
+            value={form.start_date}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm mb-1">End Date</label>
+          <input
+            name="end_date"
+            type="date"
+            value={form.end_date}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded"
+            required
+          />
+        </div>
+      </div>
+
       <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Submit</button>
     </form>
   );

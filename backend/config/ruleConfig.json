@@ -13,7 +13,9 @@
   },
   "minLeadTime": {
     "enabled": true,
-    "days": 3
+    "days": 3,
+    "allowImmediateForReschedule": true,
+    "description": "Allow immediate booking for campaign rescheduling"
   },
   "cooldownPeriod": {
     "enabled": true,

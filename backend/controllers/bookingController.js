@@ -178,6 +178,85 @@ const BookingController = {
       logger.error(err);
       res.status(500).json({ message: 'Failed to update booking dates' });
     }
+  },
+
+  // Update full booking (title, lob, purpose, dates, creative_url)
+  async update(req, res) {
+    const { id } = req.params;
+    const { title, lob, purpose, creative_url, start_date, end_date } = req.body;
+    const user = req.user;
+
+    if (!title || !lob || !purpose || !start_date || !end_date) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    try {
+      const booking = await Booking.findById(id);
+      if (!booking) return res.status(404).json({ message: 'Booking not found' });
+
+      // permission: owner or admin
+      if (user.role !== 'admin' && booking.user_id !== user.user_id) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+
+      // Get asset details for rule validation
+      const Asset = require('../models/Asset');
+      const asset = await Asset.findById(booking.asset_id);
+      if (!asset) {
+        return res.status(404).json({ message: 'Asset not found' });
+      }
+
+      // Check for conflicts if dates changed
+      if (start_date !== booking.start_date || end_date !== booking.end_date) {
+        const conflicts = await Booking.findConflicts(booking.asset_id, start_date, end_date);
+        const otherConflicts = conflicts.filter((c) => c.id !== booking.id);
+        if (otherConflicts.length) {
+          return res.status(409).json({ message: 'Slot already booked for the given dates', conflicts: otherConflicts });
+        }
+      }
+
+      // Rule-engine validation
+      const { validateBookingRules } = require('../utils/ruleEngine');
+      const ruleErrors = await validateBookingRules({
+        id,
+        asset_id: booking.asset_id,
+        lob,
+        purpose,
+        start_date,
+        end_date,
+        asset_type: asset.type
+      });
+      if (ruleErrors.length) {
+        return res.status(422).json({ message: 'Rule validation failed', errors: ruleErrors });
+      }
+
+      const updated = await Booking.update(id, {
+        title,
+        lob,
+        purpose,
+        creative_url,
+        start_date,
+        end_date
+      });
+
+      // Calculate estimated cost
+      const { differenceInCalendarDays, parseISO } = require('date-fns');
+      const spanDays = differenceInCalendarDays(parseISO(end_date), parseISO(start_date)) + 1;
+      updated.estimated_cost = spanDays * (asset.value_per_day || 0);
+
+      await AuditLog.create({
+        user_id: user.user_id,
+        action: 'update_booking',
+        entity_type: 'booking',
+        entity_id: id,
+        metadata: { title, lob, purpose, start_date, end_date }
+      });
+
+      res.json(updated);
+    } catch (err) {
+      logger.error(err);
+      res.status(500).json({ message: 'Failed to update booking' });
+    }
   }
 };
 

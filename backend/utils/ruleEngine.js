@@ -95,8 +95,18 @@ async function validateBookingRules(booking) {
   if (ruleConfig.minLeadTime.enabled) {
     const now = startOfDay(new Date());
     const minStart = addDays(now, ruleConfig.minLeadTime.days);
-    if (isBefore(toDate(booking.start_date), minStart)) {
-      errors.push(`Bookings must be created at least ${ruleConfig.minLeadTime.days} days in advance`);
+    const isImmediateBooking = isBefore(toDate(booking.start_date), minStart);
+    
+    if (isImmediateBooking) {
+      // Check if this is a reschedule (existing booking being updated)
+      const isReschedule = booking.id && booking.id !== 'undefined';
+      
+      if (isReschedule && ruleConfig.minLeadTime.allowImmediateForReschedule) {
+        // Allow immediate booking for rescheduling
+        // This allows campaigns to be moved to today when another campaign is cancelled
+      } else {
+        errors.push(`Bookings must be created at least ${ruleConfig.minLeadTime.days} days in advance`);
+      }
     }
   }
 
