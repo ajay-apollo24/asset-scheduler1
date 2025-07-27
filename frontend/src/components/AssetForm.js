@@ -3,7 +3,16 @@ import { useState } from 'react';
 import apiClient from '../api/apiClient';
 
 const AssetForm = ({ onCreated }) => {
-  const [form, setForm] = useState({ name: '', location: '', type: '', max_slots: 1, importance: 1, impressions_per_day: 0, value_per_day: 0 });
+  const [form, setForm] = useState({ 
+    name: '', 
+    location: '', 
+    type: '', 
+    max_slots: 1, 
+    importance: 1, 
+    impressions_per_day: 0, 
+    value_per_day: 0,
+    level: 'secondary'
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -36,6 +45,16 @@ const AssetForm = ({ onCreated }) => {
           <input name={field} value={form[field]} onChange={handleChange} className="input input-bordered w-full" />
         </div>
       ))}
+      <div className="mb-3">
+        <label className="label">
+          <span className="label-text">Level</span>
+        </label>
+        <select name="level" value={form.level} onChange={handleChange} className="select select-bordered w-full">
+          <option value="primary">Primary - High visibility (app home, etc.)</option>
+          <option value="secondary">Secondary - User journey assets</option>
+          <option value="tertiary">Tertiary - Post transaction assets</option>
+        </select>
+      </div>
       <div className="mb-3">
         <label className="block text-sm mb-1">Max Slots</label>
         <input

@@ -14,7 +14,7 @@ const Booking = {
 
   async findAll() {
     const result = await db.query(
-      `SELECT b.*, a.name AS asset_name, u.email AS user_email
+      `SELECT b.*, a.name AS asset_name, a.level AS asset_level, u.email AS user_email
        FROM bookings b
        JOIN assets a ON b.asset_id = a.id
        JOIN users u ON b.user_id = u.id
@@ -74,15 +74,28 @@ const Booking = {
 
   /** Find bookings for a given asset+LOB within a date window */
   async findByAssetLOBWithinWindow(asset_id, lob, from_date, to_date) {
-    const result = await db.query(
-      `SELECT * FROM bookings
-       WHERE asset_id = $1
-         AND lob = $2
-         AND status IN ('pending', 'approved')
-         AND is_deleted = false
-         AND NOT (end_date < $3 OR start_date > $4)`,
-      [asset_id, lob, from_date, to_date]
-    );
+    let query, params;
+    
+    if (lob === null) {
+      // Query all LOBs for this asset
+      query = `SELECT * FROM bookings
+               WHERE asset_id = $1
+                 AND status IN ('pending', 'approved')
+                 AND is_deleted = false
+                 AND NOT (end_date < $2 OR start_date > $3)`;
+      params = [asset_id, from_date, to_date];
+    } else {
+      // Query specific LOB
+      query = `SELECT * FROM bookings
+               WHERE asset_id = $1
+                 AND lob = $2
+                 AND status IN ('pending', 'approved')
+                 AND is_deleted = false
+                 AND NOT (end_date < $3 OR start_date > $4)`;
+      params = [asset_id, lob, from_date, to_date];
+    }
+    
+    const result = await db.query(query, params);
     return result.rows;
   },
 

@@ -186,6 +186,15 @@ const CalendarView = () => {
         <Modal onClose={() => setSelectedEvent(null)}>
           <h3 className="text-lg font-semibold mb-2">{selectedEvent.title}</h3>
           <p><strong>Asset:</strong> {selectedEvent.asset_name}</p>
+          <p><strong>Asset Level:</strong> 
+            <span className={`badge ml-2 ${
+              selectedEvent.asset_level === 'primary' ? 'badge-primary' :
+              selectedEvent.asset_level === 'secondary' ? 'badge-secondary' :
+              'badge-accent'
+            }`}>
+              {selectedEvent.asset_level}
+            </span>
+          </p>
           <p><strong>LOB:</strong> {selectedEvent.lob}</p>
           <p><strong>Purpose:</strong> {selectedEvent.purpose}</p>
           <p><strong>Status:</strong> {selectedEvent.status}</p>

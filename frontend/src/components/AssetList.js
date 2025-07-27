@@ -1,21 +1,43 @@
 // src/components/AssetList.js
-const AssetList = ({ assets }) => {
-  return (
-    <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-      {assets.map((asset) => (
-        <div key={asset.id} className="card bg-base-100 shadow">
-          <div className="card-body p-4">
-            <h2 className="card-title">{asset.name}</h2>
-            <p className="text-sm">{asset.location} • {asset.type}</p>
-            <p className="text-sm">Slots: {asset.max_slots}</p>
-            <p className="text-sm">Importance: {asset.importance}</p>
-            <p className="text-sm">Value/Day: ${asset.value_per_day}</p>
-            <p className={`text-sm ${asset.is_active ? 'text-success' : 'text-error'}`}>{asset.is_active ? 'Active' : 'Inactive'}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
+const AssetList = ({ assets }) => (
+  <div className="overflow-x-auto">
+    <table className="table table-zebra w-full text-sm">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Location</th>
+          <th>Type</th>
+          <th>Level</th>
+          <th>Slots</th>
+          <th>Importance</th>
+          <th>Value / Day</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {assets.map((a) => (
+          <tr key={a.id}>
+            <td>{a.name}</td>
+            <td>{a.location}</td>
+            <td>{a.type}</td>
+            <td>
+              <span className={`badge ${
+                a.level === 'primary' ? 'badge-primary' :
+                a.level === 'secondary' ? 'badge-secondary' :
+                'badge-accent'
+              }`}>
+                {a.level}
+              </span>
+            </td>
+            <td>{a.max_slots}</td>
+            <td>{a.importance}</td>
+            <td>${a.value_per_day}</td>
+            <td className={a.is_active ? 'text-success' : 'text-error'}>{a.is_active ? 'Active' : 'Inactive'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
 
 export default AssetList;

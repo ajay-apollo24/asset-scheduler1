@@ -51,5 +51,31 @@
         "Brand"
       ]
     }
+  },
+  "levelSpecificRules": {
+    "enabled": true,
+    "primary": {
+      "monetizationQuota": {
+        "enabled": true,
+        "percent": 0.5,
+        "description": "50% of primary assets must be reserved for monetization"
+      },
+      "monetizationConsecutiveBlock": {
+        "enabled": true,
+        "description": "Monetization can block consecutive bookings on primary assets"
+      }
+    },
+    "secondary": {
+      "defaultRules": {
+        "enabled": true,
+        "description": "Standard rules apply to secondary assets"
+      }
+    },
+    "tertiary": {
+      "defaultRules": {
+        "enabled": true,
+        "description": "Standard rules apply to tertiary assets"
+      }
+    }
   }
 }

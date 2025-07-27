@@ -9,6 +9,7 @@ const Assets = () => {
   const [assets, setAssets] = useState([]);
   const [error, setError] = useState('');
   const { user } = useAuth();
+  const [showForm, setShowForm] = useState(false);
 
   const fetchAssets = () => {
     apiClient.get('/assets')
@@ -24,7 +25,23 @@ const Assets = () => {
     <Layout>
       <h1 className="text-2xl font-semibold mb-6">Assets</h1>
       {error && <div className="text-red-600 mb-4">{error}</div>}
-      {user?.role === 'admin' && <AssetForm onCreated={fetchAssets} />}
+      {user?.role === 'admin' && (
+        <>
+          <button className="btn btn-primary mb-4" onClick={() => setShowForm(true)}>New Asset</button>
+          {showForm && (
+            <div className="modal modal-open" onClick={() => setShowForm(false)}>
+              <div className="modal-box max-w-lg" onClick={(e) => e.stopPropagation()}>
+                <AssetForm
+                  onCreated={() => {
+                    fetchAssets();
+                    setShowForm(false);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </>
+      )}
       <AssetList assets={assets} />
     </Layout>
   );
