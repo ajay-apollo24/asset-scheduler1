@@ -1,6 +1,7 @@
 // utils/ruleEngine.js
 const Booking = require('../models/Booking');
 const Asset = require('../models/Asset');
+const logger = require('./logger');
 const {
   differenceInCalendarDays,
   parseISO,
@@ -27,12 +28,22 @@ const ruleConfig = require('../config/ruleConfig.json');
  * @returns {Promise<string[]>} - array of error messages (empty if valid)
  */
 async function validateBookingRules(booking) {
+  const startTime = Date.now();
   const errors = [];
   const currentId = String(booking.id);
+  const bookingId = booking.id || 'new';
+
+  logger.rule('VALIDATION_START', bookingId, true, {
+    assetId: booking.asset_id,
+    lob: booking.lob,
+    startDate: booking.start_date,
+    endDate: booking.end_date
+  });
 
   // Get asset details for level-specific rules
   const asset = await Asset.findById(booking.asset_id);
   if (!asset) {
+    logger.rule('ASSET_NOT_FOUND', bookingId, false, { assetId: booking.asset_id });
     errors.push('Asset not found');
     return errors;
   }
@@ -42,7 +53,14 @@ async function validateBookingRules(booking) {
     const start = parseISO(booking.start_date);
     const end = parseISO(booking.end_date);
     const span = differenceInCalendarDays(end, start) + 1; // inclusive
-    if (span > ruleConfig.maxDaysPerBooking.maxDays) {
+    const passed = span <= ruleConfig.maxDaysPerBooking.maxDays;
+    
+    logger.rule('MAX_DAYS_PER_BOOKING', bookingId, passed, {
+      span,
+      maxDays: ruleConfig.maxDaysPerBooking.maxDays
+    });
+    
+    if (!passed) {
       errors.push(`Exceeds maximum allowed booking length of ${ruleConfig.maxDaysPerBooking.maxDays} days`);
     }
   }
@@ -63,9 +81,27 @@ async function validateBookingRules(booking) {
         booking.start_date,
         booking.end_date
       );
-      if (result.length > 0) {
+      const passed = result.length === 0;
+      
+      logger.rule('NO_CONSECUTIVE_SAME_ASSET_LOB', bookingId, passed, {
+        assetId: booking.asset_id,
+        lob: booking.lob,
+        adjacentBookings: result.length,
+        allowConsecutive,
+        isPrimaryAsset,
+        isMonetization
+      });
+      
+      if (!passed) {
         errors.push('Cannot book consecutively for the same asset and LOB. There must be at least 1 day gap.');
       }
+    } else {
+      logger.rule('NO_CONSECUTIVE_SAME_ASSET_LOB', bookingId, true, {
+        assetId: booking.asset_id,
+        lob: booking.lob,
+        allowConsecutive: true,
+        reason: 'Primary asset + Monetization exception'
+      });
     }
   }
 
@@ -86,7 +122,21 @@ async function validateBookingRules(booking) {
       const e = toDate(b.end_date);
       return sum + (differenceInCalendarDays(e, s) + 1);
     }, 0);
-    if (bookedDays + (differenceInCalendarDays(to, toDate(booking.start_date)) + 1) > maxDays) {
+    const currentSpan = differenceInCalendarDays(to, toDate(booking.start_date)) + 1;
+    const totalDays = bookedDays + currentSpan;
+    const passed = totalDays <= maxDays;
+    
+    logger.rule('ROLLING_WINDOW_QUOTA', bookingId, passed, {
+      assetId: booking.asset_id,
+      lob: booking.lob,
+      windowDays,
+      maxDays,
+      bookedDays,
+      currentSpan,
+      totalDays
+    });
+    
+    if (!passed) {
       errors.push(`Rolling window quota exceeded: max ${maxDays} days in ${windowDays}-day window`);
     }
   }
@@ -104,9 +154,26 @@ async function validateBookingRules(booking) {
       if (isReschedule && ruleConfig.minLeadTime.allowImmediateForReschedule) {
         // Allow immediate booking for rescheduling
         // This allows campaigns to be moved to today when another campaign is cancelled
+        logger.rule('MIN_LEAD_TIME', bookingId, true, {
+          isImmediateBooking: true,
+          isReschedule: true,
+          allowImmediateForReschedule: true,
+          reason: 'Reschedule exception'
+        });
       } else {
+        logger.rule('MIN_LEAD_TIME', bookingId, false, {
+          isImmediateBooking: true,
+          isReschedule,
+          allowImmediateForReschedule: ruleConfig.minLeadTime.allowImmediateForReschedule,
+          minDays: ruleConfig.minLeadTime.days
+        });
         errors.push(`Bookings must be created at least ${ruleConfig.minLeadTime.days} days in advance`);
       }
+    } else {
+      logger.rule('MIN_LEAD_TIME', bookingId, true, {
+        isImmediateBooking: false,
+        minDays: ruleConfig.minLeadTime.days
+      });
     }
   }
 
@@ -115,16 +182,41 @@ async function validateBookingRules(booking) {
     const last = await Booking.findLastBookingByAssetLOB(booking.asset_id, booking.lob);
     if (last && String(last.id) !== currentId) {
       const gapStart = addDays(toDate(last.end_date), ruleConfig.cooldownPeriod.days);
-      if (isBefore(toDate(booking.start_date), gapStart)) {
+      const passed = !isBefore(toDate(booking.start_date), gapStart);
+      
+      logger.rule('COOLDOWN_PERIOD', bookingId, passed, {
+        assetId: booking.asset_id,
+        lob: booking.lob,
+        lastBookingId: last.id,
+        lastEndDate: last.end_date,
+        cooldownDays: ruleConfig.cooldownPeriod.days,
+        gapStart: gapStart.toISOString().slice(0, 10)
+      });
+      
+      if (!passed) {
         errors.push(`Need a ${ruleConfig.cooldownPeriod.days}-day gap after previous booking for same asset & LOB`);
       }
+    } else {
+      logger.rule('COOLDOWN_PERIOD', bookingId, true, {
+        assetId: booking.asset_id,
+        lob: booking.lob,
+        reason: 'No previous booking found'
+      });
     }
   }
 
   // 6. Concurrent booking cap per LOB
   if (ruleConfig.concurrentBookingCap.enabled) {
     const active = (await Booking.findActiveByLOB(booking.lob, booking.start_date)).filter((b)=>String(b.id)!==currentId);
-    if (active.length >= ruleConfig.concurrentBookingCap.maxActive) {
+    const passed = active.length < ruleConfig.concurrentBookingCap.maxActive;
+    
+    logger.rule('CONCURRENT_BOOKING_CAP', bookingId, passed, {
+      lob: booking.lob,
+      activeBookings: active.length,
+      maxActive: ruleConfig.concurrentBookingCap.maxActive
+    });
+    
+    if (!passed) {
       errors.push(`LOB already has ${active.length} active bookings – limit is ${ruleConfig.concurrentBookingCap.maxActive}`);
     }
   }
@@ -138,7 +230,15 @@ async function validateBookingRules(booking) {
         day <= booking.end_date.slice(0, 10)
       );
     });
-    if (blackoutHit) {
+    const passed = !blackoutHit;
+    
+    logger.rule('BLACKOUT_DATES', bookingId, passed, {
+      startDate: booking.start_date,
+      endDate: booking.end_date,
+      blackoutHit
+    });
+    
+    if (!passed) {
       errors.push(`Bookings are not allowed on blackout date ${blackoutHit}`);
     }
   }
@@ -161,7 +261,22 @@ async function validateBookingRules(booking) {
       return sum + (differenceInCalendarDays(e, s) + 1);
     }, 0);
     const currentSpan = differenceInCalendarDays(toDate(booking.end_date), toDate(booking.start_date)) + 1;
-    if ((bookedByLOB + currentSpan) / totalQuarterDays > ruleConfig.percentageShareCap.percent) {
+    const percentage = (bookedByLOB + currentSpan) / totalQuarterDays;
+    const passed = percentage <= ruleConfig.percentageShareCap.percent;
+    
+    logger.rule('PERCENTAGE_SHARE_CAP', bookingId, passed, {
+      assetId: booking.asset_id,
+      lob: booking.lob,
+      quarterStart: startQ.toISOString().slice(0, 10),
+      quarterEnd: endQ.toISOString().slice(0, 10),
+      totalQuarterDays,
+      bookedByLOB,
+      currentSpan,
+      percentage: (percentage * 100).toFixed(2) + '%',
+      maxPercentage: (ruleConfig.percentageShareCap.percent * 100).toFixed(2) + '%'
+    });
+    
+    if (!passed) {
       errors.push(`LOB exceeds ${ruleConfig.percentageShareCap.percent * 100}% share of asset days in this quarter`);
     }
   }
@@ -177,7 +292,16 @@ async function validateBookingRules(booking) {
       booking.end_date
     );
     const dupes = dupesAll.filter((b)=>String(b.id)!==currentId);
-    if (dupes.length > 0) {
+    const passed = dupes.length === 0;
+    
+    logger.rule('PURPOSE_DUPLICATION', bookingId, passed, {
+      assetId: booking.asset_id,
+      purpose: booking.purpose,
+      windowDays,
+      duplicateCount: dupes.length
+    });
+    
+    if (!passed) {
       errors.push('Identical purpose used recently for this asset – please vary campaign or wait for window to pass');
     }
   }
@@ -185,7 +309,15 @@ async function validateBookingRules(booking) {
   // 10. Asset-type exclusivity
   if (ruleConfig.assetTypeExclusivity.enabled && booking.asset_type) {
     const allowed = ruleConfig.assetTypeExclusivity.allowed[booking.asset_type];
-    if (allowed && !allowed.includes(booking.lob)) {
+    const passed = !allowed || allowed.includes(booking.lob);
+    
+    logger.rule('ASSET_TYPE_EXCLUSIVITY', bookingId, passed, {
+      assetType: booking.asset_type,
+      lob: booking.lob,
+      allowedLOBs: allowed
+    });
+    
+    if (!passed) {
       errors.push(`LOB ${booking.lob} is not allowed to book asset type ${booking.asset_type}`);
     }
   }
@@ -194,6 +326,18 @@ async function validateBookingRules(booking) {
   if (ruleConfig.levelSpecificRules?.enabled) {
     await validateLevelSpecificRules(booking, asset, errors, currentId);
   }
+
+  const duration = Date.now() - startTime;
+  logger.performance('RULE_VALIDATION', duration, {
+    bookingId,
+    ruleCount: Object.keys(ruleConfig).length,
+    errorCount: errors.length
+  });
+
+  logger.rule('VALIDATION_COMPLETE', bookingId, errors.length === 0, {
+    errorCount: errors.length,
+    errors: errors.length > 0 ? errors : undefined
+  });
 
   return errors;
 }
@@ -204,8 +348,14 @@ async function validateBookingRules(booking) {
 async function validateLevelSpecificRules(booking, asset, errors, currentId) {
   const { level } = asset;
   const levelRules = ruleConfig.levelSpecificRules[level];
+  const bookingId = booking.id || 'new';
 
   if (!levelRules) return;
+
+  logger.rule('LEVEL_SPECIFIC_START', bookingId, true, {
+    assetLevel: level,
+    assetId: asset.id
+  });
 
   // Primary asset rules
   if (level === 'primary') {
@@ -250,11 +400,28 @@ async function validateLevelSpecificRules(booking, asset, errors, currentId) {
       totalBookedDays += currentSpan;
       
       // Check if monetization exceeds quota
-      if (totalBookedDays > 0 && (monetizationDays / totalBookedDays) > percent) {
-        errors.push(`Monetization quota exceeded: ${(monetizationDays / totalBookedDays * 100).toFixed(1)}% booked (max ${percent * 100}%)`);
+      const monetizationPercentage = totalBookedDays > 0 ? monetizationDays / totalBookedDays : 0;
+      const passed = monetizationPercentage <= percent;
+      
+      logger.rule('PRIMARY_MONETIZATION_QUOTA', bookingId, passed, {
+        assetId: booking.asset_id,
+        assetLevel: level,
+        totalBookedDays,
+        monetizationDays,
+        monetizationPercentage: (monetizationPercentage * 100).toFixed(2) + '%',
+        maxPercentage: (percent * 100).toFixed(2) + '%',
+        isMonetization
+      });
+      
+      if (!passed) {
+        errors.push(`Monetization quota exceeded: ${(monetizationPercentage * 100).toFixed(1)}% booked (max ${percent * 100}%)`);
       }
     }
   }
+
+  logger.rule('LEVEL_SPECIFIC_COMPLETE', bookingId, true, {
+    assetLevel: level
+  });
 }
 
 module.exports = {

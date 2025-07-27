@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react';
 import apiClient from '../api/apiClient';
 import BookingForm from '../components/BookingForm';
+import BookingEditForm from '../components/BookingEditForm';
+import Modal from '../components/Modal';
 import Layout from '../components/Layout';
+import { useAuth } from '../contexts/AuthContext';
 
 const Bookings = () => {
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editingBooking, setEditingBooking] = useState(null);
+  const [deletingBooking, setDeletingBooking] = useState(null);
+  const { user } = useAuth();
 
   const fetchBookings = () => {
     apiClient.get('/bookings')
@@ -18,11 +24,35 @@ const Bookings = () => {
     fetchBookings();
   }, []);
 
+  const handleEdit = (booking) => {
+    setEditingBooking(booking);
+  };
+
+  const handleDelete = async (booking) => {
+    if (window.confirm(`Delete booking "${booking.title}"?`)) {
+      try {
+        await apiClient.delete(`/bookings/${booking.id}`);
+        fetchBookings();
+        setDeletingBooking(null);
+      } catch (err) {
+        setError('Failed to delete booking');
+      }
+    }
+  };
+
+  const handleEditSuccess = () => {
+    fetchBookings();
+    setEditingBooking(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingBooking(null);
+  };
+
   return (
     <Layout>
       <h1 className="text-2xl font-semibold mb-6">Bookings</h1>
-      {error && <div className="text-red-600 mb-4">{error}</div>}
-
+      {error && <div className="alert alert-error mb-4">{error}</div>}
 
       <button className="btn btn-primary mb-4" onClick={() => setShowForm(true)}>New Booking</button>
 
@@ -39,10 +69,20 @@ const Bookings = () => {
         </div>
       )}
 
+      {editingBooking && (
+        <Modal onClose={handleEditCancel}>
+          <BookingEditForm
+            booking={editingBooking}
+            onUpdated={handleEditSuccess}
+            onCancel={handleEditCancel}
+          />
+        </Modal>
+      )}
+
       <div className="overflow-x-auto mt-6">
         <table className="table table-zebra w-full text-sm">
           <thead>
-            <tr className="bg-gray-200 text-left">
+            <tr>
               <th>Campaign</th>
               <th>Asset</th>
               <th>LOB</th>
@@ -50,6 +90,7 @@ const Bookings = () => {
               <th>Start</th>
               <th>End</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -69,6 +110,24 @@ const Bookings = () => {
                     : 'text-warning'
                 }>
                   {b.status}
+                </td>
+                <td>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(b)}
+                      className="btn btn-sm btn-outline"
+                    >
+                      Edit
+                    </button>
+                    {user?.role === 'admin' && (
+                      <button
+                        onClick={() => handleDelete(b)}
+                        className="btn btn-sm btn-error"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
