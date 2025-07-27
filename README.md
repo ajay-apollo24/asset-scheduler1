@@ -38,3 +38,13 @@
 ```bash
 git clone https://github.com/ajay-apollo24/asset-scheduler1.git
 cd asset-scheduler1
+
+---
+
+## 📌 Planned Enhancements
+	•	Role-Based Access (Admin / User)
+	•	Recurring Bookings Support
+	•	Approval Notifications (email or in-app)
+	•	Drag-and-Drop Rescheduling
+	•	Reports & Usage Analytics
+
