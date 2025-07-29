@@ -8,20 +8,20 @@ dotenv.config({ path: './test.env' });
 // Set test environment
 process.env.NODE_ENV = 'test';
 process.env.DB_NAME = process.env.TEST_DB_NAME || 'asset_scheduler_test';
-process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
+process.env.LOG_LEVEL = 'info'; // Enable logs during tests
 
 // Global test timeout - increased for integration tests
 jest.setTimeout(60000); // 60 seconds
 
-// Mock console methods to reduce noise
-global.console = {
-  ...console,
-  log: jest.fn(),
-  debug: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-};
+// Mock console methods to reduce noise (commented out to see logs)
+// global.console = {
+//   ...console,
+//   log: jest.fn(),
+//   debug: jest.fn(),
+//   info: jest.fn(),
+//   warn: jest.fn(),
+//   error: jest.fn(),
+// };
 
 // Global test utilities
 global.testUtils = {

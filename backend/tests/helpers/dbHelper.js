@@ -3,8 +3,16 @@ const db = require('../../config/db');
 
 class TestDBHelper {
   static async setupTestDB() {
-    // Create test tables if they don't exist
-    await this.createTestTables();
+    try {
+      // Test database connection first
+      await db.query('SELECT 1');
+      
+      // Create test tables if they don't exist
+      await this.createTestTables();
+    } catch (error) {
+      console.error('Failed to setup test database:', error);
+      throw new Error(`Database setup failed: ${error.message}`);
+    }
   }
 
   static async createTestTables() {
@@ -96,48 +104,69 @@ class TestDBHelper {
     for (const table of tables) {
       try {
         await db.query(`DELETE FROM ${table}`);
-        await db.query(`ALTER SEQUENCE ${table}_id_seq RESTART WITH 1`);
+        // Reset sequence only if table exists and has data
+        const sequenceCheck = await db.query(`
+          SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_name = '${table}'
+          )
+        `);
+        
+        if (sequenceCheck.rows[0].exists) {
+          await db.query(`ALTER SEQUENCE ${table}_id_seq RESTART WITH 1`);
+        }
       } catch (error) {
         console.error(`Error cleaning up ${table}:`, error);
+        // Don't throw here to allow other cleanup to continue
       }
     }
   }
 
   static async insertTestData() {
-    // Insert test user
-    const testUser = await db.query(`
-      INSERT INTO users (email, password_hash, role) 
-      VALUES ($1, $2, $3) 
-      RETURNING *
-    `, ['test@example.com', 'hashed_password', 'admin']);
+    try {
+      // Insert test user
+      const testUser = await db.query(`
+        INSERT INTO users (email, password_hash, role) 
+        VALUES ($1, $2, $3) 
+        RETURNING *
+      `, ['test@example.com', 'hashed_password', 'admin']);
 
-    // Insert test asset
-    const testAsset = await db.query(`
-      INSERT INTO assets (name, location, type, max_slots, importance, level) 
-      VALUES ($1, $2, $3, $4, $5, $6) 
-      RETURNING *
-    `, ['Test Asset', 'test_location', 'banner', 1, 1, 'secondary']);
+      // Insert test asset
+      const testAsset = await db.query(`
+        INSERT INTO assets (name, location, type, max_slots, importance, level) 
+        VALUES ($1, $2, $3, $4, $5, $6) 
+        RETURNING *
+      `, ['Test Asset', 'test_location', 'banner', 1, 1, 'secondary']);
 
-    return {
-      user: testUser.rows[0],
-      asset: testAsset.rows[0]
-    };
+      return {
+        user: testUser.rows[0],
+        asset: testAsset.rows[0]
+      };
+    } catch (error) {
+      console.error('Error inserting test data:', error);
+      throw error;
+    }
   }
 
   static async getTestData() {
-    const users = await db.query('SELECT * FROM users');
-    const assets = await db.query('SELECT * FROM assets');
-    const bookings = await db.query('SELECT * FROM bookings');
-    const auditLogs = await db.query('SELECT * FROM audit_logs');
-    const approvals = await db.query('SELECT * FROM approvals');
+    try {
+      const users = await db.query('SELECT * FROM users');
+      const assets = await db.query('SELECT * FROM assets');
+      const bookings = await db.query('SELECT * FROM bookings');
+      const auditLogs = await db.query('SELECT * FROM audit_logs');
+      const approvals = await db.query('SELECT * FROM approvals');
 
-    return {
-      users: users.rows,
-      assets: assets.rows,
-      bookings: bookings.rows,
-      auditLogs: auditLogs.rows,
-      approvals: approvals.rows
-    };
+      return {
+        users: users.rows,
+        assets: assets.rows,
+        bookings: bookings.rows,
+        auditLogs: auditLogs.rows,
+        approvals: approvals.rows
+      };
+    } catch (error) {
+      console.error('Error getting test data:', error);
+      throw error;
+    }
   }
 }
 

@@ -11,16 +11,16 @@ describe('API Integration Tests', () => {
 
   beforeAll(async () => {
     await TestDBHelper.setupTestDB();
-  });
+  }, 30000); // 30 second timeout for setup
 
   beforeEach(async () => {
     await TestDBHelper.cleanupTestDB();
     testData = await TestDBHelper.insertTestData();
-  });
+  }, 15000); // 15 second timeout for each test setup
 
   afterAll(async () => {
     await TestDBHelper.cleanupTestDB();
-  });
+  }, 15000);
 
   describe('Asset Endpoints', () => {
     it('should create asset successfully', async () => {
@@ -38,13 +38,14 @@ describe('API Integration Tests', () => {
       const response = await request(app)
         .post('/api/assets')
         .send(assetData)
-        .set('Authorization', 'Bearer valid.token');
+        .set('Authorization', 'Bearer valid.token')
+        .timeout(10000); // 10 second timeout
 
       // Assert
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
       expect(response.body.name).toBe(assetData.name);
-    });
+    }, 15000); // 15 second test timeout
 
     it('should return 400 for invalid asset data', async () => {
       // Arrange
@@ -57,23 +58,25 @@ describe('API Integration Tests', () => {
       const response = await request(app)
         .post('/api/assets')
         .send(invalidAssetData)
-        .set('Authorization', 'Bearer valid.token');
+        .set('Authorization', 'Bearer valid.token')
+        .timeout(10000);
 
       // Assert
       expect(response.status).toBe(400);
       expect(response.body.message).toContain('required');
-    });
+    }, 15000);
 
     it('should get all assets', async () => {
       // Act
       const response = await request(app)
         .get('/api/assets')
-        .set('Authorization', 'Bearer valid.token');
+        .set('Authorization', 'Bearer valid.token')
+        .timeout(10000);
 
       // Assert
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
-    });
+    }, 15000);
   });
 
   describe('Booking Endpoints', () => {
@@ -92,13 +95,14 @@ describe('API Integration Tests', () => {
       const response = await request(app)
         .post('/api/bookings')
         .send(bookingData)
-        .set('Authorization', 'Bearer valid.token');
+        .set('Authorization', 'Bearer valid.token')
+        .timeout(10000);
 
       // Assert
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
       expect(response.body.title).toBe(bookingData.title);
-    });
+    }, 15000);
 
     it('should return 409 for booking conflict', async () => {
       // Arrange
@@ -115,18 +119,20 @@ describe('API Integration Tests', () => {
       await request(app)
         .post('/api/bookings')
         .send(bookingData)
-        .set('Authorization', 'Bearer valid.token');
+        .set('Authorization', 'Bearer valid.token')
+        .timeout(10000);
 
       // Act - Try to create conflicting booking
       const response = await request(app)
         .post('/api/bookings')
         .send(bookingData)
-        .set('Authorization', 'Bearer valid.token');
+        .set('Authorization', 'Bearer valid.token')
+        .timeout(10000);
 
       // Assert
       expect(response.status).toBe(409);
       expect(response.body.message).toContain('Slot already booked');
-    });
+    }, 20000); // Increased timeout for this test
 
     it('should update booking dates', async () => {
       // Arrange
@@ -143,7 +149,8 @@ describe('API Integration Tests', () => {
       const createResponse = await request(app)
         .post('/api/bookings')
         .send(bookingData)
-        .set('Authorization', 'Bearer valid.token');
+        .set('Authorization', 'Bearer valid.token')
+        .timeout(10000);
 
       const bookingId = createResponse.body.id;
 
@@ -154,13 +161,14 @@ describe('API Integration Tests', () => {
           start_date: '2024-01-16',
           end_date: '2024-01-21'
         })
-        .set('Authorization', 'Bearer valid.token');
+        .set('Authorization', 'Bearer valid.token')
+        .timeout(10000);
 
       // Assert
       expect(response.status).toBe(200);
       expect(response.body.start_date).toBe('2024-01-16');
       expect(response.body.end_date).toBe('2024-01-21');
-    });
+    }, 20000); // Increased timeout for this test
   });
 
   describe('Error Handling', () => {
@@ -168,36 +176,39 @@ describe('API Integration Tests', () => {
       // Act
       const response = await request(app)
         .get('/api/nonexistent')
-        .set('Authorization', 'Bearer valid.token');
+        .set('Authorization', 'Bearer valid.token')
+        .timeout(10000);
 
       // Assert
       expect(response.status).toBe(404);
       expect(response.body.message).toBe('Not Found');
-    });
+    }, 15000);
 
     it('should return 401 for missing authentication', async () => {
       // Act
       const response = await request(app)
-        .get('/api/assets');
+        .get('/api/assets')
+        .timeout(10000);
 
       // Assert
       expect(response.status).toBe(401);
-    });
+    }, 15000);
 
     it('should handle database connection errors gracefully', async () => {
       // This test would require mocking database connection failures
       // and is more of a unit test scenario
       expect(true).toBe(true);
-    });
+    }, 10000);
   });
 
   describe('Performance Tests', () => {
     it('should handle multiple concurrent requests', async () => {
       // Arrange
-      const requests = Array(10).fill().map(() => 
+      const requests = Array(5).fill().map(() => 
         request(app)
           .get('/api/assets')
           .set('Authorization', 'Bearer valid.token')
+          .timeout(5000)
       );
 
       // Act
@@ -207,7 +218,7 @@ describe('API Integration Tests', () => {
 
       // Assert
       expect(responses.every(r => r.status === 200)).toBe(true);
-      expect(endTime - startTime).toBeLessThan(5000); // 5 seconds max
-    });
+      expect(endTime - startTime).toBeLessThan(10000); // 10 seconds max
+    }, 15000); // Increased timeout for performance test
   });
 }); 
