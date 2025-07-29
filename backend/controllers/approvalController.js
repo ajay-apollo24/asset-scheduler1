@@ -141,17 +141,6 @@ const ApprovalController = {
         });
       }
 
-      // Invalidate cache for bookings list after approval action
-      if (req.app.locals.responseCache) {
-        const cache = req.app.locals.responseCache;
-        for (const [key] of cache) {
-          if (key.includes('/api/bookings')) {
-            cache.delete(key);
-            logger.info('Cache invalidated after approval action', { key });
-          }
-        }
-      }
-
       const duration = Date.now() - startTime;
       logger.performance('APPROVAL_ACTION', duration, {
         approvalId: id,

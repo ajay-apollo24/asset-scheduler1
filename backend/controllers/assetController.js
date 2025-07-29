@@ -75,17 +75,6 @@ const AssetController = {
         level: asset.level
       });
 
-      // Invalidate cache for assets list
-      if (req.app.locals.responseCache) {
-        const cache = req.app.locals.responseCache;
-        for (const [key] of cache) {
-          if (key.includes('/api/assets')) {
-            cache.delete(key);
-            logger.info('Cache invalidated after asset creation', { key });
-          }
-        }
-      }
-
       res.status(201).json(asset);
     } catch (err) {
       const duration = Date.now() - startTime;
@@ -219,21 +208,8 @@ const AssetController = {
       });
 
       logger.asset('UPDATE_SUCCESS', id, user_id, {
-        name: currentAsset.name,
-        location: currentAsset.location,
-        level: currentAsset.level
+        updatedFields: Object.keys(updates)
       });
-
-      // Invalidate cache for assets list
-      if (req.app.locals.responseCache) {
-        const cache = req.app.locals.responseCache;
-        for (const [key] of cache) {
-          if (key.includes('/api/assets')) {
-            cache.delete(key);
-            logger.info('Cache invalidated after asset update', { key });
-          }
-        }
-      }
 
       res.json(updated);
     } catch (err) {
@@ -245,71 +221,6 @@ const AssetController = {
         duration
       });
       res.status(500).json({ message: 'Failed to update asset' });
-    }
-  },
-
-  async delete(req, res) {
-    const { id } = req.params;
-    const user_id = req.user.user_id;
-    const startTime = Date.now();
-
-    logger.asset('DELETE_ATTEMPT', id, user_id);
-
-    try {
-      const asset = await Asset.findById(id);
-      if (!asset) {
-        logger.warn('Asset deletion failed - asset not found', {
-          userId: user_id,
-          assetId: id
-        });
-        return res.status(404).json({ message: 'Asset not found' });
-      }
-
-      await Asset.delete(id);
-
-      // Audit logging for asset deletion
-      await AuditLog.create({
-        user_id,
-        action: 'DELETE_ASSET',
-        entity_type: 'asset',
-        entity_id: id,
-        metadata: {
-          asset_name: asset.name,
-          asset_id: id
-        },
-        ip_address: req.ip,
-        user_agent: req.get('User-Agent')
-      });
-
-      const duration = Date.now() - startTime;
-      logger.performance('ASSET_DELETE', duration, {
-        assetId: id,
-        userId: user_id
-      });
-
-      logger.asset('DELETE_SUCCESS', id, user_id);
-
-      // Invalidate cache for assets list
-      if (req.app.locals.responseCache) {
-        const cache = req.app.locals.responseCache;
-        for (const [key] of cache) {
-          if (key.includes('/api/assets')) {
-            cache.delete(key);
-            logger.info('Cache invalidated after asset deletion', { key });
-          }
-        }
-      }
-
-      res.json({ message: 'Asset deleted successfully' });
-    } catch (err) {
-      const duration = Date.now() - startTime;
-      logger.logError(err, {
-        context: 'asset_delete',
-        userId: user_id,
-        assetId: id,
-        duration
-      });
-      res.status(500).json({ message: 'Failed to delete asset' });
     }
   }
 };

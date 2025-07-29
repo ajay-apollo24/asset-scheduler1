@@ -218,17 +218,6 @@ const BiddingController = {
         auction_status: 'active'
       });
 
-      // Invalidate cache for bookings list
-      if (req.app.locals.responseCache) {
-        const cache = req.app.locals.responseCache;
-        for (const [key] of cache) {
-          if (key.includes('/api/bookings')) {
-            cache.delete(key);
-            logger.info('Cache invalidated after auction start', { key });
-          }
-        }
-      }
-
       logger.info('Auction started', {
         userId: user_id,
         bookingId: booking_id
@@ -265,17 +254,6 @@ const BiddingController = {
           auction_status: 'cancelled'
         });
         
-        // Invalidate cache for bookings list
-        if (req.app.locals.responseCache) {
-          const cache = req.app.locals.responseCache;
-          for (const [key] of cache) {
-            if (key.includes('/api/bookings')) {
-              cache.delete(key);
-              logger.info('Cache invalidated after auction cancellation', { key });
-            }
-          }
-        }
-        
         return res.json({
           message: 'Auction cancelled - no bids received',
           winner: null
@@ -293,17 +271,6 @@ const BiddingController = {
         user_id: winner.user_id,
         lob: winner.lob
       });
-
-      // Invalidate cache for bookings list
-      if (req.app.locals.responseCache) {
-        const cache = req.app.locals.responseCache;
-        for (const [key] of cache) {
-          if (key.includes('/api/bookings')) {
-            cache.delete(key);
-            logger.info('Cache invalidated after auction completion', { key });
-          }
-        }
-      }
 
       // Update bid statuses
       for (const bid of bids) {

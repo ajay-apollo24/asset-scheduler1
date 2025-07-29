@@ -24,13 +24,6 @@ describe('AssetController', () => {
     req = global.testUtils.mockRequest();
     res = global.testUtils.mockResponse();
     next = global.testUtils.mockNext();
-
-    // Add missing app.locals for cache invalidation
-    req.app = {
-      locals: {
-        responseCache: new Map()
-      }
-    };
   });
 
   afterEach(async () => {

@@ -10,7 +10,6 @@ jest.mock('../../models/Booking');
 jest.mock('../../models/Asset');
 jest.mock('../../models/AuditLog');
 jest.mock('../../utils/ruleEngine');
-jest.mock('../../models/Approval');
 
 describe('BookingController', () => {
   let req, res, next;
@@ -28,13 +27,6 @@ describe('BookingController', () => {
     req = global.testUtils.mockRequest();
     res = global.testUtils.mockResponse();
     next = global.testUtils.mockNext();
-
-    // Add missing app.locals for cache invalidation
-    req.app = {
-      locals: {
-        responseCache: new Map()
-      }
-    };
   });
 
   afterEach(async () => {
@@ -76,9 +68,6 @@ describe('BookingController', () => {
       Booking.findConflicts.mockResolvedValue([]);
       Booking.create.mockResolvedValue(mockBooking);
       AuditLog.create.mockResolvedValue({ id: 1 });
-      // Mock Approval.createSteps
-      const Approval = require('../../models/Approval');
-      Approval.createSteps.mockResolvedValue([]);
 
       // Mock rule engine
       const { validateBookingRules } = require('../../utils/ruleEngine');
@@ -192,19 +181,6 @@ describe('BookingController', () => {
       const mockAsset = { id: 1, name: 'Test Asset', level: 'secondary' };
       Asset.findById.mockResolvedValue(mockAsset);
       Booking.findConflicts.mockRejectedValue(new Error('Database error'));
-      // All other Booking methods should be mocked to avoid real DB calls
-      Booking.create.mockResolvedValue({});
-      Booking.findAll.mockResolvedValue([]);
-      Booking.findById.mockResolvedValue(null);
-      Booking.updateStatus.mockResolvedValue({});
-      Booking.update.mockResolvedValue({});
-      Booking.updateDates.mockResolvedValue({});
-      Booking.softDelete.mockResolvedValue({});
-      const Approval = require('../../models/Approval');
-      Approval.createSteps.mockResolvedValue([]);
-      AuditLog.create.mockResolvedValue({ id: 1 });
-      const { validateBookingRules } = require('../../utils/ruleEngine');
-      validateBookingRules.mockResolvedValue([]);
 
       // Act
       await BookingController.create(req, res);
@@ -238,19 +214,6 @@ describe('BookingController', () => {
     it('should handle database errors gracefully', async () => {
       // Arrange
       Booking.findAll.mockRejectedValue(new Error('Database error'));
-      // All other Booking methods should be mocked to avoid real DB calls
-      Booking.create.mockResolvedValue({});
-      Booking.findConflicts.mockResolvedValue([]);
-      Booking.findById.mockResolvedValue(null);
-      Booking.updateStatus.mockResolvedValue({});
-      Booking.update.mockResolvedValue({});
-      Booking.updateDates.mockResolvedValue({});
-      Booking.softDelete.mockResolvedValue({});
-      const Approval = require('../../models/Approval');
-      Approval.createSteps.mockResolvedValue([]);
-      AuditLog.create.mockResolvedValue({ id: 1 });
-      const { validateBookingRules } = require('../../utils/ruleEngine');
-      validateBookingRules.mockResolvedValue([]);
 
       // Act
       await BookingController.getAll(req, res);

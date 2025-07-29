@@ -51,20 +51,6 @@ class TestDBHelper {
       )
     `;
 
-    const createBidsTable = `
-      CREATE TABLE IF NOT EXISTS bids (
-        id SERIAL PRIMARY KEY,
-        booking_id INTEGER REFERENCES bookings(id) ON DELETE CASCADE,
-        lob VARCHAR(100) NOT NULL,
-        bid_amount NUMERIC(10,2) NOT NULL,
-        max_bid NUMERIC(10,2),
-        bid_reason TEXT,
-        user_id INTEGER REFERENCES users(id),
-        status VARCHAR(50) DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `;
-
     const createAuditLogsTable = `
       CREATE TABLE IF NOT EXISTS audit_logs (
         id SERIAL PRIMARY KEY,
@@ -96,7 +82,6 @@ class TestDBHelper {
       await db.query(createUsersTable);
       await db.query(createAssetsTable);
       await db.query(createBookingsTable);
-      await db.query(createBidsTable);
       await db.query(createAuditLogsTable);
       await db.query(createApprovalsTable);
     } catch (error) {
@@ -106,28 +91,25 @@ class TestDBHelper {
   }
 
   static async cleanupTestDB() {
-    const tables = ['bids', 'audit_logs', 'approvals', 'bookings', 'assets', 'users'];
+    const tables = ['audit_logs', 'approvals', 'bookings', 'assets', 'users'];
+    
     for (const table of tables) {
       try {
         await db.query(`DELETE FROM ${table}`);
-        // NOTE: We intentionally no longer reset the table's serial sequence here.
-        // Resetting during parallel test execution can cause two workers to insert the
-        // same id value simultaneously, leading to duplicate-key violations.
-        // Sequences will continue incrementing naturally, guaranteeing global uniqueness.
-      } catch (err) {
-        // Ignore if table has no sequence or permission restricted (non-serial tables)
+        await db.query(`ALTER SEQUENCE ${table}_id_seq RESTART WITH 1`);
+      } catch (error) {
+        console.error(`Error cleaning up ${table}:`, error);
       }
     }
   }
 
   static async insertTestData() {
-    const uniqueEmail = `test_${Date.now()}_${Math.floor(Math.random()*1000)}@example.com`;
     // Insert test user
     const testUser = await db.query(`
       INSERT INTO users (email, password_hash, role) 
       VALUES ($1, $2, $3) 
       RETURNING *
-    `, [uniqueEmail, 'hashed_password', 'admin']);
+    `, ['test@example.com', 'hashed_password', 'admin']);
 
     // Insert test asset
     const testAsset = await db.query(`
