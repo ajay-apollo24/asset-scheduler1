@@ -1,5 +1,6 @@
 // tests/setup.js
 const dotenv = require('dotenv');
+const db = require('../config/db');
 
 // Load test environment variables
 dotenv.config({ path: './test.env' });
@@ -9,8 +10,8 @@ process.env.NODE_ENV = 'test';
 process.env.DB_NAME = process.env.TEST_DB_NAME || 'asset_scheduler_test';
 process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
 
-// Global test timeout
-jest.setTimeout(10000);
+// Global test timeout - increased for integration tests
+jest.setTimeout(60000); // 60 seconds
 
 // Mock console methods to reduce noise
 global.console = {
@@ -86,4 +87,24 @@ global.testUtils = {
     // Clean up any test data
     jest.clearAllMocks();
   }
-}; 
+};
+
+// Global setup and teardown
+beforeAll(async () => {
+  // Ensure database is ready
+  try {
+    await db.query('SELECT 1');
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    throw error;
+  }
+});
+
+afterAll(async () => {
+  // Close all database connections
+  try {
+    await db.close();
+  } catch (error) {
+    console.error('Error closing database connections:', error);
+  }
+}); 
