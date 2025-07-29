@@ -242,6 +242,38 @@ const fallbackMiddleware = {
   },
 
   /**
+   * Cache invalidation middleware
+   * Call this after any data modification to clear related cache entries
+   */
+  invalidateCache: (patterns = []) => {
+    return (req, res, next) => {
+      if (!req.app.locals.responseCache) {
+        return next();
+      }
+
+      // Clear cache entries matching the patterns
+      const cache = req.app.locals.responseCache;
+      const keysToDelete = [];
+
+      for (const [key] of cache) {
+        for (const pattern of patterns) {
+          if (key.includes(pattern)) {
+            keysToDelete.push(key);
+            break;
+          }
+        }
+      }
+
+      keysToDelete.forEach(key => {
+        cache.delete(key);
+        logger.info('Cache invalidated', { key });
+      });
+
+      next();
+    };
+  },
+
+  /**
    * Health check fallback
    */
   healthCheckFallback: (req, res, next) => {

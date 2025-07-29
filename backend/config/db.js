@@ -17,4 +17,9 @@ pool.on('error', (err) => {
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
+  /**
+   * Gracefully terminate all idle Postgres clients so Jest can exit cleanly.
+   * Call this in test afterAll hooks.
+   */
+  close: () => pool.end(),
 };

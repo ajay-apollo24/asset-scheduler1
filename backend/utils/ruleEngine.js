@@ -8,6 +8,7 @@ const {
   subDays,
   addDays,
   isBefore,
+  isAfter,
   startOfDay,
   startOfQuarter,
   endOfQuarter,
@@ -117,11 +118,17 @@ async function validateBookingRules(booking) {
       to.toISOString().slice(0, 10)
     );
     const filteredPrev = prev.filter((b) => String(b.id) !== currentId);
-    const bookedDays = filteredPrev.reduce((sum, b) => {
-      const s = toDate(b.start_date);
-      const e = toDate(b.end_date);
-      return sum + (differenceInCalendarDays(e, s) + 1);
-    }, 0);
+    // Count unique days booked within the rolling window to avoid double-counting overlaps
+    const daySetRw = new Set();
+    filteredPrev.forEach((b) => {
+      let cur = toDate(b.start_date);
+      const end = toDate(b.end_date);
+      while (!isAfter(cur, end)) {
+        daySetRw.add(cur.toISOString().slice(0, 10));
+        cur = addDays(cur, 1);
+      }
+    });
+    const bookedDays = daySetRw.size;
     const currentSpan = differenceInCalendarDays(to, toDate(booking.start_date)) + 1;
     const totalDays = bookedDays + currentSpan;
     const passed = totalDays <= maxDays;
@@ -255,11 +262,17 @@ async function validateBookingRules(booking) {
     );
     const prev = prevRaw.filter((b)=>String(b.id)!==currentId);
     const totalQuarterDays = differenceInCalendarDays(endQ, startQ) + 1;
-    const bookedByLOB = prev.reduce((sum, b) => {
-      const s = toDate(b.start_date);
-      const e = toDate(b.end_date);
-      return sum + (differenceInCalendarDays(e, s) + 1);
-    }, 0);
+    // Build a set of unique dates booked by this LOB within the quarter
+    const daySetPct = new Set();
+    prev.forEach((b) => {
+      let cur = toDate(b.start_date);
+      const end = toDate(b.end_date);
+      while (!isAfter(cur, end)) {
+        daySetPct.add(cur.toISOString().slice(0, 10));
+        cur = addDays(cur, 1);
+      }
+    });
+    const bookedByLOB = daySetPct.size;
     const currentSpan = differenceInCalendarDays(toDate(booking.end_date), toDate(booking.start_date)) + 1;
     const percentage = (bookedByLOB + currentSpan) / totalQuarterDays;
     const passed = percentage <= ruleConfig.percentageShareCap.percent;
@@ -399,8 +412,8 @@ async function validateLevelSpecificRules(booking, asset, errors, currentId) {
       }
       totalBookedDays += currentSpan;
       
-      // Check if monetization exceeds quota
-      const monetizationPercentage = totalBookedDays > 0 ? monetizationDays / totalBookedDays : 0;
+      // Check if monetization exceeds quota (based on total quarter days, not just booked days)
+      const monetizationPercentage = monetizationDays / totalQuarterDays;
       const passed = monetizationPercentage <= percent;
       
       logger.rule('PRIMARY_MONETIZATION_QUOTA', bookingId, passed, {

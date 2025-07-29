@@ -131,6 +131,17 @@ const BookingController = {
         spanDays
       });
 
+      // Invalidate cache for bookings list
+      if (req.app.locals.responseCache) {
+        const cache = req.app.locals.responseCache;
+        for (const [key] of cache) {
+          if (key.includes('/api/bookings')) {
+            cache.delete(key);
+            logger.info('Cache invalidated after booking creation', { key });
+          }
+        }
+      }
+
       res.status(201).json(booking);
     } catch (err) {
       const duration = Date.now() - startTime;
@@ -256,6 +267,18 @@ const BookingController = {
       });
 
       logger.booking('UPDATE_STATUS_SUCCESS', id, user_id, { status });
+
+      // Invalidate cache for bookings list
+      if (req.app.locals.responseCache) {
+        const cache = req.app.locals.responseCache;
+        for (const [key] of cache) {
+          if (key.includes('/api/bookings')) {
+            cache.delete(key);
+            logger.info('Cache invalidated after booking status update', { key });
+          }
+        }
+      }
+
       res.json(updated);
     } catch (err) {
       const duration = Date.now() - startTime;
@@ -316,7 +339,19 @@ const BookingController = {
       });
 
       logger.booking('DELETE_SUCCESS', id, user_id);
-      res.json(deleted);
+
+      // Invalidate cache for bookings list
+      if (req.app.locals.responseCache) {
+        const cache = req.app.locals.responseCache;
+        for (const [key] of cache) {
+          if (key.includes('/api/bookings')) {
+            cache.delete(key);
+            logger.info('Cache invalidated after booking deletion', { key });
+          }
+        }
+      }
+
+      res.json({ message: 'Booking deleted successfully' });
     } catch (err) {
       const duration = Date.now() - startTime;
       logger.logError(err, {
@@ -435,6 +470,17 @@ const BookingController = {
         start_date,
         end_date
       });
+
+      // Invalidate cache for bookings list
+      if (req.app.locals.responseCache) {
+        const cache = req.app.locals.responseCache;
+        for (const [key] of cache) {
+          if (key.includes('/api/bookings')) {
+            cache.delete(key);
+            logger.info('Cache invalidated after booking dates update', { key });
+          }
+        }
+      }
 
       res.json(updated);
     } catch (err) {
@@ -596,6 +642,17 @@ const BookingController = {
         estimatedCost: updated.estimated_cost,
         spanDays
       });
+
+      // Invalidate cache for bookings list
+      if (req.app.locals.responseCache) {
+        const cache = req.app.locals.responseCache;
+        for (const [key] of cache) {
+          if (key.includes('/api/bookings')) {
+            cache.delete(key);
+            logger.info('Cache invalidated after booking full update', { key });
+          }
+        }
+      }
 
       res.json(updated);
     } catch (err) {

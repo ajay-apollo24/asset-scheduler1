@@ -78,15 +78,20 @@ app.use((req, res) => {
 app.use(fallbackMiddleware.errorRecovery);
 app.use(errorHandler);
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  logger.info('Server started', {
-    port: PORT,
-    environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString()
+// Export app for testing
+module.exports = app;
+
+// Start server only if run directly
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    logger.info('Server started', {
+      port: PORT,
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString()
+    });
   });
-});
+}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

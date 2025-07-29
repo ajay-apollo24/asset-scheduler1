@@ -49,6 +49,24 @@ const Bookings = () => {
     setEditingBooking(null);
   };
 
+  const handleStartAuction = async (bookingId) => {
+    try {
+      await apiClient.put(`/api/bidding/${bookingId}/start`);
+      fetchBookings();
+    } catch (err) {
+      setError('Failed to start auction');
+    }
+  };
+
+  const handleEndAuction = async (bookingId) => {
+    try {
+      await apiClient.put(`/api/bidding/${bookingId}/end`);
+      fetchBookings();
+    } catch (err) {
+      setError('Failed to end auction');
+    }
+  };
+
   return (
     <Layout>
       <h1 className="text-2xl font-semibold mb-6">Bookings</h1>
@@ -90,6 +108,7 @@ const Bookings = () => {
               <th>Start</th>
               <th>End</th>
               <th>Status</th>
+              <th>Auction</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -112,6 +131,20 @@ const Bookings = () => {
                   {b.status}
                 </td>
                 <td>
+                  {b.auction_status ? (
+                    <span className={`badge ${
+                      b.auction_status === 'active' ? 'badge-success' :
+                      b.auction_status === 'completed' ? 'badge-info' :
+                      b.auction_status === 'pending' ? 'badge-warning' :
+                      'badge-neutral'
+                    }`}>
+                      {b.auction_status}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </td>
+                <td>
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(b)}
@@ -119,6 +152,22 @@ const Bookings = () => {
                     >
                       Edit
                     </button>
+                    {!b.auction_status && b.status === 'approved' && (user?.role === 'admin' || b.user_id === user?.user_id) && (
+                      <button
+                        onClick={() => handleStartAuction(b.id)}
+                        className="btn btn-sm btn-primary"
+                      >
+                        Start Auction
+                      </button>
+                    )}
+                    {b.auction_status === 'active' && (user?.role === 'admin' || b.user_id === user?.user_id) && (
+                      <button
+                        onClick={() => handleEndAuction(b.id)}
+                        className="btn btn-sm btn-warning"
+                      >
+                        End Auction
+                      </button>
+                    )}
                     {user?.role === 'admin' && (
                       <button
                         onClick={() => handleDelete(b)}
