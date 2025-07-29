@@ -38,6 +38,10 @@ const reportRoutes = require('./routes/reportRoutes');
 const logRoutes = require('./routes/logRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 
+// Ad Server Routes
+const adRoutes = require('./routes/adRoutes');
+const creativeRoutes = require('./routes/creativeRoutes');
+
 // Middleware
 const errorHandler = require('./middleware/errorHandler');
 
@@ -50,6 +54,10 @@ app.use('/api/approvals', approvalRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/audit', auditRoutes);
+
+// Ad Server Route mounting
+app.use('/api/ads', adRoutes);
+app.use('/api/creatives', creativeRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

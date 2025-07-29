@@ -3,6 +3,7 @@ const Creative = require('../models/Creative');
 const Campaign = require('../models/Campaign');
 const AdRequest = require('../models/AdRequest');
 const Impression = require('../models/Impression');
+const AdServer = require('../utils/adServer');
 const logger = require('../utils/logger');
 
 const AdController = {
@@ -17,46 +18,67 @@ const AdController = {
     });
 
     try {
-      // TODO: Implement ad serving logic
-      // 1. Validate asset exists
-      // 2. Find available creatives for the asset
-      // 3. Apply targeting rules
-      // 4. Select best creative
-      // 5. Create ad request record
-      // 6. Return ad response
+      // 1. Validate ad request
+      const validation = await AdServer.validateAdRequest(asset_id, user_context, page_context);
+      if (!validation.valid) {
+        logger.warn('Ad request validation failed', {
+          asset_id,
+          errors: validation.errors
+        });
+        return res.status(400).json({ 
+          message: 'Invalid ad request', 
+          errors: validation.errors 
+        });
+      }
 
+      // 2. Select best creative
+      const creative = await AdServer.selectCreative(asset_id, user_context, page_context);
+      if (!creative) {
+        logger.warn('No creative available for asset', { asset_id });
+        return res.status(204).json({ message: 'No ad available' });
+      }
+
+      // 3. Calculate bid
+      const bid = await AdServer.calculateBid(asset_id, user_context, creative.id);
+
+      // 4. Create ad request record
+      const adRequest = await AdRequest.create({ 
+        asset_id, 
+        user_context, 
+        page_context 
+      });
+
+      // 5. Generate tracking URLs
+      const trackingUrls = await AdServer.generateTrackingUrls(adRequest.id, creative.id);
+
+      // 6. Build ad response
       const adResponse = {
-        ad_id: `ad_${Date.now()}`,
+        ad_id: adRequest.id,
         creative: {
-          type: 'image',
-          content: {
-            image_url: 'https://cdn.example.com/ads/placeholder.jpg',
-            click_url: 'https://example.com/click',
-            alt_text: 'Sample Ad'
-          }
+          id: creative.id,
+          type: creative.type,
+          content: creative.content,
+          dimensions: creative.dimensions
         },
-        tracking: {
-          impression_url: `https://tracking.example.com/impression/ad_${Date.now()}`,
-          click_url: `https://tracking.example.com/click/ad_${Date.now()}`
-        },
+        tracking: trackingUrls,
+        bid: bid,
         metadata: {
-          campaign_id: 'camp_001',
-          advertiser: 'Sample Brand',
+          campaign_id: creative.campaign_id,
+          asset_id: asset_id,
           expires_at: new Date(Date.now() + 3600000).toISOString() // 1 hour
         }
       };
 
-      // Create ad request record
-      await AdRequest.create({ asset_id, user_context, page_context });
-
       const duration = Date.now() - startTime;
       logger.performance('AD_SERVE', duration, {
         asset_id,
+        creative_id: creative.id,
         response_time: duration
       });
 
       logger.ad('SERVE_SUCCESS', adResponse.ad_id, null, {
         asset_id,
+        creative_id: creative.id,
         creative_type: adResponse.creative.type
       });
 
@@ -82,18 +104,21 @@ const AdController = {
     });
 
     try {
-      // TODO: Implement impression tracking
-      // 1. Validate ad_id and creative_id
-      // 2. Create impression record
-      // 3. Update creative performance metrics
-      // 4. Fire tracking pixels
+      // 1. Validate parameters
+      if (!ad_id || !creative_id) {
+        return res.status(400).json({ message: 'ad_id and creative_id are required' });
+      }
 
-      await Impression.create({ 
-        ad_request_id: 1, // TODO: Get from ad_id
+      // 2. Create impression record
+      const impression = await Impression.create({ 
+        ad_request_id: ad_id,
         creative_id, 
         user_id, 
         metadata 
       });
+
+      // 3. Update performance metrics
+      await AdServer.updatePerformanceMetrics(creative_id, 'impression', metadata);
 
       const duration = Date.now() - startTime;
       logger.performance('IMPRESSION_TRACK', duration, {
@@ -102,11 +127,15 @@ const AdController = {
       });
 
       logger.ad('IMPRESSION_SUCCESS', ad_id, user_id, {
-        creative_id
+        creative_id,
+        impression_id: impression.id
       });
 
       // Return 1x1 pixel
       res.set('Content-Type', 'image/gif');
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
       res.send(Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64'));
     } catch (err) {
       const duration = Date.now() - startTime;
@@ -129,13 +158,33 @@ const AdController = {
     });
 
     try {
-      // TODO: Implement click tracking
-      // 1. Validate ad_id and creative_id
-      // 2. Create click record
-      // 3. Update creative performance metrics
-      // 4. Redirect to destination URL
+      // 1. Validate parameters
+      if (!ad_id || !creative_id) {
+        return res.status(400).json({ message: 'ad_id and creative_id are required' });
+      }
 
-      const destinationUrl = 'https://example.com/destination'; // TODO: Get from creative
+      // 2. Get creative to find destination URL
+      const creative = await Creative.findById(creative_id);
+      if (!creative) {
+        return res.status(404).json({ message: 'Creative not found' });
+      }
+
+      // 3. Create click record
+      const click = await Impression.create({ 
+        ad_request_id: ad_id,
+        creative_id, 
+        user_id, 
+        metadata: { ...metadata, event_type: 'click' }
+      });
+
+      // 4. Update performance metrics
+      await AdServer.updatePerformanceMetrics(creative_id, 'click', metadata);
+
+      // 5. Get destination URL from creative content
+      const destinationUrl = creative.content.click_url || creative.content.destination_url;
+      if (!destinationUrl) {
+        return res.status(400).json({ message: 'No destination URL found' });
+      }
 
       const duration = Date.now() - startTime;
       logger.performance('CLICK_TRACK', duration, {
@@ -145,9 +194,11 @@ const AdController = {
 
       logger.ad('CLICK_SUCCESS', ad_id, user_id, {
         creative_id,
-        destination_url: destinationUrl
+        destination_url: destinationUrl,
+        click_id: click.id
       });
 
+      // Redirect to destination URL
       res.redirect(destinationUrl);
     } catch (err) {
       const duration = Date.now() - startTime;
@@ -157,6 +208,63 @@ const AdController = {
         duration
       });
       res.status(500).json({ message: 'Failed to track click' });
+    }
+  },
+
+  async getAdAnalytics(req, res) {
+    const { asset_id, timeRange = '24h' } = req.query;
+    const startTime = Date.now();
+
+    logger.ad('ANALYTICS_ATTEMPT', null, req.user?.user_id, {
+      asset_id,
+      timeRange
+    });
+
+    try {
+      // Get analytics data
+      const analytics = await AdRequest.getRequestStats(asset_id, timeRange);
+      
+      // Get creative performance for the asset
+      let creativePerformance = [];
+      if (asset_id) {
+        const creatives = await Creative.findByAssetId(asset_id);
+        creativePerformance = await Promise.all(
+          creatives.map(async (creative) => {
+            const metrics = await Creative.getPerformanceMetrics(creative.id, timeRange);
+            return {
+              creative_id: creative.id,
+              name: creative.name,
+              type: creative.type,
+              ...metrics
+            };
+          })
+        );
+      }
+
+      const response = {
+        asset_id,
+        timeRange,
+        request_stats: analytics,
+        creative_performance: creativePerformance
+      };
+
+      const duration = Date.now() - startTime;
+      logger.performance('AD_ANALYTICS', duration, { asset_id });
+
+      logger.ad('ANALYTICS_SUCCESS', null, req.user?.user_id, {
+        asset_id,
+        timeRange
+      });
+
+      res.json(response);
+    } catch (err) {
+      const duration = Date.now() - startTime;
+      logger.logError(err, {
+        context: 'ad_analytics',
+        asset_id,
+        duration
+      });
+      res.status(500).json({ message: 'Failed to fetch analytics' });
     }
   }
 };

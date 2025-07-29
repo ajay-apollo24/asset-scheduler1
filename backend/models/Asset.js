@@ -47,6 +47,42 @@ const Asset = {
 
     const result = await db.query(query, values);
     return result.rows[0];
+  },
+
+  // Ad Server Enhancement Methods
+  async getAdFormats(id) {
+    // TODO: Implement ad formats retrieval
+    console.log('Asset.getAdFormats called with:', id);
+    return ['image', 'video', 'html5'];
+  },
+
+  async getTargetingCriteria(id) {
+    // TODO: Implement targeting criteria retrieval
+    console.log('Asset.getTargetingCriteria called with:', id);
+    return {
+      geolocation: ['US', 'CA'],
+      demographics: ['18-35'],
+      interests: ['technology', 'sports']
+    };
+  },
+
+  async getPricingModel(id) {
+    // TODO: Implement pricing model retrieval
+    console.log('Asset.getPricingModel called with:', id);
+    return {
+      type: 'cpm',
+      base_rate: 2.50,
+      premium_multiplier: 1.5
+    };
+  },
+
+  async getAvailableCreatives(id) {
+    // TODO: Implement available creatives retrieval
+    console.log('Asset.getAvailableCreatives called with:', id);
+    return [
+      { id: 1, name: 'Creative 1', type: 'image', status: 'approved' },
+      { id: 2, name: 'Creative 2', type: 'video', status: 'approved' }
+    ];
   }
 };
 

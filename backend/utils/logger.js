@@ -151,6 +151,30 @@ const enhancedLogger = {
       ...details
     });
   },
+
+  // Ad logging
+  ad: (action, adId, userId, details = {}) => {
+    logger.info('AD', {
+      type: 'ad',
+      action,
+      adId,
+      userId,
+      timestamp: new Date().toISOString(),
+      ...details
+    });
+  },
+
+  // Creative logging
+  creative: (action, creativeId, userId, details = {}) => {
+    logger.info('CREATIVE', {
+      type: 'creative',
+      action,
+      creativeId,
+      userId,
+      timestamp: new Date().toISOString(),
+      ...details
+    });
+  },
   
   security: (action, userId, ip, details = {}) => {
     logger.warn('SECURITY', {
