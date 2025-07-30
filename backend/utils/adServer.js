@@ -5,6 +5,7 @@ const Campaign = require('../models/Campaign');
 const AdRequest = require('../models/AdRequest');
 const logger = require('./logger');
 const cache = require('./cache');
+const MLEngine = require('./mlEngine');
 
 const AdServer = {
   async selectCreative(asset_id, user_context, page_context) {
@@ -36,9 +37,12 @@ const AdServer = {
         return null;
       }
 
-      // 3. Apply performance optimization (select best performing creative)
-      const bestCreative = await this.selectBestCreative(targetedCreatives, user_context);
-      
+      // 3. Use ML engine to score creatives
+      const mlCreative = await MLEngine.optimizeCreativeSelection(targetedCreatives, user_context);
+
+      // 4. Apply performance optimization as fallback
+      const bestCreative = await this.selectBestCreative([mlCreative], user_context);
+
       return bestCreative;
     } catch (error) {
       logger.error('Error in selectCreative', { error: error.message, asset_id });
