@@ -41,6 +41,7 @@ const auditRoutes = require('./routes/auditRoutes');
 // Ad Server Routes
 const adRoutes = require('./routes/adRoutes');
 const creativeRoutes = require('./routes/creativeRoutes');
+const rtbRoutes = require('./routes/rtbRoutes');
 
 // Middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -57,6 +58,7 @@ app.use('/api/audit', auditRoutes);
 
 // Ad Server Route mounting
 app.use('/api/ads', adRoutes);
+app.use('/api/ads/rtb', rtbRoutes);
 app.use('/api/creatives', creativeRoutes);
 
 // Health check endpoint
