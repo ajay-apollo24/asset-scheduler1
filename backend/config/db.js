@@ -1,6 +1,6 @@
 // config/db.js
 const { Pool } = require('pg');
-const logger = require('../utils/logger');
+const logger = require('../modules/shared/utils/logger');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://asset_allocation:asset_allocation@localhost:5435/asset_allocation'

@@ -1,5 +1,5 @@
 const db = require('./db');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 (async () => {
   const pwHash = await bcrypt.hash('admin_2025', 10);
