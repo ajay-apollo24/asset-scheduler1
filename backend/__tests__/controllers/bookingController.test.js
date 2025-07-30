@@ -3,6 +3,7 @@ const BookingController = require('../../modules/asset-booking/controllers/booki
 const Booking = require('../../modules/asset-booking/models/Booking');
 const Asset = require('../../modules/asset-booking/models/Asset');
 const AuditLog = require('../../modules/shared/models/AuditLog');
+const TestDBHelper = require('../../tests/helpers/dbHelper');
 
 // Mock dependencies
 jest.mock('../../modules/asset-booking/models/Booking');
