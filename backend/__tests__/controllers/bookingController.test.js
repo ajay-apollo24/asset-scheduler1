@@ -1,15 +1,15 @@
 // __tests__/controllers/bookingController.test.js
-const BookingController = require('../../controllers/bookingController');
-const Booking = require('../../models/Booking');
-const Asset = require('../../models/Asset');
-const AuditLog = require('../../models/AuditLog');
+const BookingController = require('../../modules/asset-booking/controllers/bookingController');
+const Booking = require('../../modules/asset-booking/models/Booking');
+const Asset = require('../../modules/asset-booking/models/Asset');
+const AuditLog = require('../../modules/shared/models/AuditLog');
 const TestDBHelper = require('../../tests/helpers/dbHelper');
 
 // Mock dependencies
-jest.mock('../../models/Booking');
-jest.mock('../../models/Asset');
-jest.mock('../../models/AuditLog');
-jest.mock('../../utils/ruleEngine');
+jest.mock('../../modules/asset-booking/models/Booking');
+jest.mock('../../modules/asset-booking/models/Asset');
+jest.mock('../../modules/shared/models/AuditLog');
+jest.mock('../../modules/asset-booking/utils/ruleEngine');
 
 describe('BookingController', () => {
   let req, res, next;
@@ -70,7 +70,7 @@ describe('BookingController', () => {
       AuditLog.create.mockResolvedValue({ id: 1 });
 
       // Mock rule engine
-      const { validateBookingRules } = require('../../utils/ruleEngine');
+      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
       validateBookingRules.mockResolvedValue([]);
 
       // Act
@@ -160,7 +160,7 @@ describe('BookingController', () => {
       Booking.findConflicts.mockResolvedValue([]);
 
       // Mock rule engine
-      const { validateBookingRules } = require('../../utils/ruleEngine');
+      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
       validateBookingRules.mockResolvedValue(mockRuleErrors);
 
       // Act
@@ -367,7 +367,7 @@ describe('BookingController', () => {
       AuditLog.create.mockResolvedValue({ id: 1 });
 
       // Mock rule engine
-      const { validateBookingRules } = require('../../utils/ruleEngine');
+      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
       validateBookingRules.mockResolvedValue([]);
 
       // Act
@@ -442,7 +442,7 @@ describe('BookingController', () => {
       AuditLog.create.mockResolvedValue({ id: 1 });
 
       // Mock rule engine
-      const { validateBookingRules } = require('../../utils/ruleEngine');
+      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
       validateBookingRules.mockResolvedValue([]);
 
       // Act

@@ -1,11 +1,11 @@
 // __tests__/utils/ruleEngine.test.js
-const { validateBookingRules } = require('../../utils/ruleEngine');
-const Asset = require('../../models/Asset');
-const Booking = require('../../models/Booking');
+const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
+const Asset = require('../../modules/asset-booking/models/Asset');
+const Booking = require('../../modules/asset-booking/models/Booking');
 
 // Mock dependencies
-jest.mock('../../models/Asset');
-jest.mock('../../models/Booking');
+jest.mock('../../modules/asset-booking/models/Asset');
+jest.mock('../../modules/asset-booking/models/Booking');
 
 describe('RuleEngine', () => {
   let mockBooking, mockAsset;

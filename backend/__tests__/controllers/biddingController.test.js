@@ -1,14 +1,14 @@
-const BiddingController = require('../../controllers/biddingController');
-const Bid = require('../../models/Bid');
-const Booking = require('../../models/Booking');
-const User = require('../../models/User');
+const BiddingController = require('../../modules/asset-booking/controllers/biddingController');
+const Bid = require('../../modules/asset-booking/models/Bid');
+const Booking = require('../../modules/asset-booking/models/Booking');
+const User = require('../../modules/shared/models/User');
 
 // Mock dependencies
-jest.mock('../../models/Bid');
-jest.mock('../../models/Booking');
-jest.mock('../../models/User');
-jest.mock('../../utils/logger');
-jest.mock('../../utils/fairAllocation');
+jest.mock('../../modules/asset-booking/models/Bid');
+jest.mock('../../modules/asset-booking/models/Booking');
+jest.mock('../../modules/shared/models/User');
+jest.mock('../../modules/shared/utils/logger');
+jest.mock('../../modules/asset-booking/utils/fairAllocation');
 
 describe('Bidding Controller', () => {
   let req, res, next;
@@ -162,7 +162,7 @@ describe('Bidding Controller', () => {
       
       Bid.getActiveBids.mockResolvedValue(mockBids);
       
-      const fairAllocation = require('../../utils/fairAllocation');
+      const fairAllocation = require('../../modules/asset-booking/utils/fairAllocation');
       fairAllocation.calculateFairnessScore.mockResolvedValue(0.5);
 
       // Act
@@ -212,7 +212,7 @@ describe('Bidding Controller', () => {
       Booking.update.mockResolvedValue([1]);
       Bid.updateBid.mockResolvedValue([1]);
 
-      const fairAllocation = require('../../utils/fairAllocation');
+      const fairAllocation = require('../../modules/asset-booking/utils/fairAllocation');
       fairAllocation.resolveConflicts.mockResolvedValue([mockBids[1]]);
 
       // Act

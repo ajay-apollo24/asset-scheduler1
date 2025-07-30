@@ -4,7 +4,7 @@ const app = require('../../server');
 const TestDBHelper = require('../../tests/helpers/dbHelper');
 
 // Mock dependencies
-jest.mock('../../utils/logger');
+jest.mock('../../modules/shared/utils/logger');
 
 describe('API Integration Tests', () => {
   let testData;
