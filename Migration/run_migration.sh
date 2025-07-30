@@ -1,16 +1,14 @@
 #!/bin/bash
 
-echo "Running asset level migration..."
-
-# You can run this manually with your database client
+echo "Running all migrations..."
 # For example, if using psql:
-# psql -d asset_scheduler -f asset_level_migration.sql
+# psql -d asset_scheduler -f ../all_migrations.sql
 
 echo "Migration SQL commands:"
 echo "======================="
-cat asset_level_migration.sql
+cat ../all_migrations.sql
 
 echo ""
 echo "Please run the above SQL commands in your database client."
 echo "Or if you have psql installed, run:"
-echo "psql -d asset_scheduler -f asset_level_migration.sql" 
+echo "psql -d asset_scheduler -f ../all_migrations.sql"
