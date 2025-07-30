@@ -4,12 +4,18 @@ const Creative = require('../models/Creative');
 const Campaign = require('../models/Campaign');
 const AdRequest = require('../models/AdRequest');
 const logger = require('./logger');
+const cache = require('./cache');
 
 const AdServer = {
   async selectCreative(asset_id, user_context, page_context) {
     try {
-      // 1. Get available creatives for the asset
-      const creatives = await Creative.getApprovedCreativesForAsset(asset_id);
+      // 1. Get available creatives for the asset (with caching)
+      const cacheKey = `creative:asset:${asset_id}`;
+      let creatives = await cache.get(cacheKey);
+      if (!creatives) {
+        creatives = await Creative.getApprovedCreativesForAsset(asset_id);
+        await cache.set(cacheKey, creatives, 300);
+      }
       
       if (creatives.length === 0) {
         logger.warn('No approved creatives found for asset', { asset_id });
@@ -108,7 +114,12 @@ const AdServer = {
       let bestScore = 0;
 
       for (const creative of creatives) {
-        const metrics = await Creative.getPerformanceMetrics(creative.id, '7d');
+        const perfKey = `performance:creative:${creative.id}`;
+        let metrics = await cache.get(perfKey);
+        if (!metrics) {
+          metrics = await Creative.getPerformanceMetrics(creative.id, '7d');
+          await cache.set(perfKey, metrics, 1800);
+        }
         const score = this.calculateCreativeScore(creative, metrics, user_context);
         
         if (score > bestScore) {
@@ -282,9 +293,18 @@ const AdServer = {
   },
 
   async checkRateLimit(asset_id, ip) {
-    // Simple rate limiting - in production, use Redis
-    // For now, return true (no rate limiting)
-    return true;
+    try {
+      const key = `rate:${asset_id}:${ip}`;
+      const count = (await cache.get(key)) || 0;
+      if (count >= 1000) {
+        return false;
+      }
+      await cache.set(key, count + 1, 60);
+      return true;
+    } catch (error) {
+      logger.error('Rate limit check error', { error: error.message });
+      return true;
+    }
   },
 
   async performFraudCheck(user_context, page_context) {
