@@ -2,11 +2,11 @@ module.exports = {
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.test.js'],
   collectCoverageFrom: [
-    'controllers/**/*.js',
-    'models/**/*.js',
-    'utils/**/*.js',
-    'middleware/**/*.js',
-    'routes/**/*.js',
+    'modules/**/controllers/**/*.js',
+    'modules/**/models/**/*.js',
+    'modules/**/utils/**/*.js',
+    'modules/**/middleware/**/*.js',
+    'modules/**/routes/**/*.js',
     '!**/node_modules/**',
     '!**/coverage/**'
   ],

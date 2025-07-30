@@ -14,11 +14,7 @@ jest.mock('../../modules/asset-booking/utils/ruleEngine');
 describe('BookingController', () => {
   let req, res, next;
 
-  beforeEach(async () => {
-    // Setup test database
-    await TestDBHelper.setupTestDB();
-    await TestDBHelper.cleanupTestDB();
-    await TestDBHelper.insertTestData();
+  beforeEach(() => {
 
     // Reset mocks
     jest.clearAllMocks();
@@ -30,7 +26,6 @@ describe('BookingController', () => {
   });
 
   afterEach(async () => {
-    await TestDBHelper.cleanupTestDB();
     await global.testUtils.cleanup();
   });
 

@@ -11,15 +11,7 @@ jest.mock('../../modules/shared/models/AuditLog');
 describe('AssetController', () => {
   let req, res, next;
 
-  beforeAll(async () => {
-    await TestDBHelper.setupTestDB();
-  }, 30000);
-
-  beforeEach(async () => {
-    // Setup test database
-    await TestDBHelper.cleanupTestDB();
-    await TestDBHelper.insertTestData();
-
+  beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
 
@@ -27,16 +19,11 @@ describe('AssetController', () => {
     req = global.testUtils.mockRequest();
     res = global.testUtils.mockResponse();
     next = global.testUtils.mockNext();
-  }, 15000);
+  });
 
   afterEach(async () => {
-    await TestDBHelper.cleanupTestDB();
     await global.testUtils.cleanup();
-  }, 15000);
-
-  afterAll(async () => {
-    await TestDBHelper.cleanupTestDB();
-  }, 15000);
+  });
 
   describe('create', () => {
     it('should create an asset successfully', async () => {
