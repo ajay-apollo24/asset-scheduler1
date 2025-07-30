@@ -49,6 +49,7 @@ app.use('/api/bidding', assetBooking.biddingRoutes);
 app.use('/api/ads', adServer.adRoutes);
 app.use('/api/ads/rtb', adServer.rtbRoutes);
 app.use('/api/creatives', adServer.creativeRoutes);
+app.use('/api/campaigns', adServer.campaignRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

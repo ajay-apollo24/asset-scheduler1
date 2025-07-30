@@ -27,7 +27,7 @@ const AdServer = {
       // 2. Apply targeting filters
       const targetedCreatives = [];
       for (const creative of creatives) {
-        const targetingPassed = await this.applyTargeting(creative, user_context);
+        const targetingPassed = await this.applyTargeting(creative, user_context, page_context);
         if (targetingPassed) {
           targetedCreatives.push(creative);
         }
@@ -51,7 +51,7 @@ const AdServer = {
     }
   },
 
-  async applyTargeting(creative, user_context) {
+  async applyTargeting(creative, user_context, page_context) {
     try {
       // Get campaign targeting criteria
       const campaign = await Campaign.findById(creative.campaign_id);
@@ -100,6 +100,32 @@ const AdServer = {
       if (targeting.devices && user_context.device) {
         if (!targeting.devices.includes(user_context.device.type)) {
           return false;
+        }
+      }
+
+      // Behavioral targeting
+      if (targeting.behavioral && user_context.behavior) {
+        if (targeting.behavioral.purchase_intent) {
+          if (!targeting.behavioral.purchase_intent.includes(user_context.behavior.purchase_intent)) {
+            return false;
+          }
+        }
+      }
+
+      // Contextual targeting
+      if (targeting.contextual && page_context) {
+        if (targeting.contextual.keywords && page_context.keywords) {
+          const match = targeting.contextual.keywords.some(k => page_context.keywords.includes(k));
+          if (!match) return false;
+        }
+        if (targeting.contextual.categories && page_context.categories) {
+          const match = targeting.contextual.categories.some(c => page_context.categories.includes(c));
+          if (!match) return false;
+        }
+        if (targeting.contextual.page_type && page_context.page_type) {
+          if (!targeting.contextual.page_type.includes(page_context.page_type)) {
+            return false;
+          }
         }
       }
 

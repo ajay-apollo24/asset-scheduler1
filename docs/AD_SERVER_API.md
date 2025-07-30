@@ -47,6 +47,8 @@ Authorization: Bearer <token>
 ### Campaign Management
 
 - `POST /api/campaigns` – Create a new campaign.
+- `GET  /api/campaigns` – List all campaigns.
+- `GET  /api/campaigns/:id` – Retrieve campaign details.
 - `GET  /api/campaigns/:id/performance` – Get campaign performance metrics.
 
 ### Analytics

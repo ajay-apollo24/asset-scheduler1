@@ -6,12 +6,13 @@ const logger = require('../../shared/utils/logger');
 
 const CreativeController = {
   async create(req, res) {
-    const { asset_id, name, type, content, dimensions, file_size } = req.body;
+    const { asset_id, campaign_id, name, type, content, dimensions, file_size } = req.body;
     const user_id = req.user.user_id;
     const startTime = Date.now();
 
     logger.creative('CREATE_ATTEMPT', null, user_id, {
       asset_id,
+      campaign_id,
       name,
       type,
       dimensions,
@@ -36,6 +37,7 @@ const CreativeController = {
 
       const creative = await Creative.create({
         asset_id,
+        campaign_id,
         name,
         type,
         content,
@@ -51,6 +53,7 @@ const CreativeController = {
         entity_id: creative.id,
         metadata: {
           asset_id,
+          campaign_id,
           name,
           type,
           dimensions,

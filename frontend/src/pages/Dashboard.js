@@ -9,7 +9,8 @@ const Dashboard = () => {
     totalAssets: 0,
     totalBookings: 0,
     activeAuctions: 0,
-    pendingApprovals: 0
+    pendingApprovals: 0,
+    totalCampaigns: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -20,18 +21,20 @@ const Dashboard = () => {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      const [assetsRes, bookingsRes, auctionsRes, approvalsRes] = await Promise.all([
+      const [assetsRes, bookingsRes, auctionsRes, approvalsRes, campaignsRes] = await Promise.all([
         apiClient.get('/assets'),
         apiClient.get('/bookings'),
         apiClient.get('/bookings?auction_status=active'),
-        apiClient.get('/approvals?status=pending')
+        apiClient.get('/approvals?status=pending'),
+        apiClient.get('/campaigns')
       ]);
 
       setStats({
         totalAssets: assetsRes.data.length,
         totalBookings: bookingsRes.data.length,
         activeAuctions: auctionsRes.data.length,
-        pendingApprovals: approvalsRes.data.length
+        pendingApprovals: approvalsRes.data.length,
+        totalCampaigns: campaignsRes.data.length
       });
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
@@ -66,19 +69,27 @@ const Dashboard = () => {
             </div>
           </div>
           
-          <div className="stat bg-base-100 shadow rounded-lg">
-            <div className="stat-title">Active Auctions</div>
-            <div className="stat-value text-accent">{stats.activeAuctions}</div>
-            <div className="stat-actions">
-              <Link to="/bidding" className="btn btn-sm btn-accent">View Auctions</Link>
-            </div>
+        <div className="stat bg-base-100 shadow rounded-lg">
+          <div className="stat-title">Active Auctions</div>
+          <div className="stat-value text-accent">{stats.activeAuctions}</div>
+          <div className="stat-actions">
+            <Link to="/bidding" className="btn btn-sm btn-accent">View Auctions</Link>
           </div>
-          
-          <div className="stat bg-base-100 shadow rounded-lg">
-            <div className="stat-title">Pending Approvals</div>
-            <div className="stat-value text-warning">{stats.pendingApprovals}</div>
-            <div className="stat-actions">
-              <Link to="/approvals" className="btn btn-sm btn-warning">View Approvals</Link>
+        </div>
+
+        <div className="stat bg-base-100 shadow rounded-lg">
+          <div className="stat-title">Total Campaigns</div>
+          <div className="stat-value text-info">{stats.totalCampaigns}</div>
+          <div className="stat-actions">
+            <Link to="/reports" className="btn btn-sm btn-info">View Campaigns</Link>
+          </div>
+        </div>
+
+        <div className="stat bg-base-100 shadow rounded-lg">
+          <div className="stat-title">Pending Approvals</div>
+          <div className="stat-value text-warning">{stats.pendingApprovals}</div>
+          <div className="stat-actions">
+            <Link to="/approvals" className="btn btn-sm btn-warning">View Approvals</Link>
             </div>
           </div>
         </div>
