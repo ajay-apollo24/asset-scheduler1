@@ -1,25 +1,16 @@
 // __tests__/controllers/assetController.test.js
-const AssetController = require('../../controllers/assetController');
-const Asset = require('../../models/Asset');
-const AuditLog = require('../../models/AuditLog');
-const TestDBHelper = require('../../tests/helpers/dbHelper');
+const AssetController = require('../../modules/asset-booking/controllers/assetController');
+const Asset = require('../../modules/asset-booking/models/Asset');
+const AuditLog = require('../../modules/shared/models/AuditLog');
 
 // Mock dependencies
-jest.mock('../../models/Asset');
-jest.mock('../../models/AuditLog');
+jest.mock('../../modules/asset-booking/models/Asset');
+jest.mock('../../modules/shared/models/AuditLog');
 
 describe('AssetController', () => {
   let req, res, next;
 
-  beforeAll(async () => {
-    await TestDBHelper.setupTestDB();
-  }, 30000);
-
-  beforeEach(async () => {
-    // Setup test database
-    await TestDBHelper.cleanupTestDB();
-    await TestDBHelper.insertTestData();
-
+  beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();
 
@@ -27,16 +18,11 @@ describe('AssetController', () => {
     req = global.testUtils.mockRequest();
     res = global.testUtils.mockResponse();
     next = global.testUtils.mockNext();
-  }, 15000);
+  });
 
   afterEach(async () => {
-    await TestDBHelper.cleanupTestDB();
     await global.testUtils.cleanup();
-  }, 15000);
-
-  afterAll(async () => {
-    await TestDBHelper.cleanupTestDB();
-  }, 15000);
+  });
 
   describe('create', () => {
     it('should create an asset successfully', async () => {

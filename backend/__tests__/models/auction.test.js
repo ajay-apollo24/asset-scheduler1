@@ -1,4 +1,4 @@
-const Auction = require('../../models/Auction');
+const Auction = require('../../modules/ad-server/models/Auction');
 const db = require('../../config/db');
 
 jest.mock('../../config/db');

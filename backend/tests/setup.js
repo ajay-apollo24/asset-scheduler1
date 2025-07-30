@@ -2,6 +2,10 @@
 const dotenv = require('dotenv');
 const db = require('../config/db');
 
+// Stub database methods so tests run without a real DB
+db.query = jest.fn().mockResolvedValue({ rows: [], rowCount: 0 });
+db.close = jest.fn().mockResolvedValue();
+
 // Load test environment variables
 dotenv.config({ path: './test.env' });
 
@@ -67,6 +71,7 @@ global.testUtils = {
     user: global.testUtils.generateTestUser(),
     ip: '127.0.0.1',
     get: jest.fn(),
+    app: { locals: { responseCache: new Map() } },
     ...overrides
   }),
 
@@ -90,21 +95,12 @@ global.testUtils = {
 };
 
 // Global setup and teardown
+
 beforeAll(async () => {
-  // Ensure database is ready
-  try {
-    await db.query('SELECT 1');
-  } catch (error) {
-    console.error('Database connection failed:', error);
-    throw error;
-  }
+  // No-op: DB methods are stubbed
+  await db.query('SELECT 1');
 });
 
 afterAll(async () => {
-  // Close all database connections
-  try {
-    await db.close();
-  } catch (error) {
-    console.error('Error closing database connections:', error);
-  }
-}); 
+  await db.close();
+});

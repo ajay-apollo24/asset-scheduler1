@@ -1,5 +1,5 @@
 // __tests__/middleware/auth.test.js
-const authMiddleware = require('../../middleware/auth');
+const authMiddleware = require('../../modules/shared/middleware/auth');
 const jwt = require('jsonwebtoken');
 
 // Mock dependencies

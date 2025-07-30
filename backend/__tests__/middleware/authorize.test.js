@@ -1,5 +1,5 @@
 // __tests__/middleware/authorize.test.js
-const authorize = require('../../middleware/authorize');
+const authorize = require('../../modules/shared/middleware/authorize');
 
 describe('Authorize Middleware', () => {
   let req, res, next;

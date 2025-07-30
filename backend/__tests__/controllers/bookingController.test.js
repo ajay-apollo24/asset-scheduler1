@@ -1,24 +1,19 @@
 // __tests__/controllers/bookingController.test.js
-const BookingController = require('../../controllers/bookingController');
-const Booking = require('../../models/Booking');
-const Asset = require('../../models/Asset');
-const AuditLog = require('../../models/AuditLog');
-const TestDBHelper = require('../../tests/helpers/dbHelper');
+const BookingController = require('../../modules/asset-booking/controllers/bookingController');
+const Booking = require('../../modules/asset-booking/models/Booking');
+const Asset = require('../../modules/asset-booking/models/Asset');
+const AuditLog = require('../../modules/shared/models/AuditLog');
 
 // Mock dependencies
-jest.mock('../../models/Booking');
-jest.mock('../../models/Asset');
-jest.mock('../../models/AuditLog');
-jest.mock('../../utils/ruleEngine');
+jest.mock('../../modules/asset-booking/models/Booking');
+jest.mock('../../modules/asset-booking/models/Asset');
+jest.mock('../../modules/shared/models/AuditLog');
+jest.mock('../../modules/asset-booking/utils/ruleEngine');
 
 describe('BookingController', () => {
   let req, res, next;
 
-  beforeEach(async () => {
-    // Setup test database
-    await TestDBHelper.setupTestDB();
-    await TestDBHelper.cleanupTestDB();
-    await TestDBHelper.insertTestData();
+  beforeEach(() => {
 
     // Reset mocks
     jest.clearAllMocks();
@@ -30,7 +25,6 @@ describe('BookingController', () => {
   });
 
   afterEach(async () => {
-    await TestDBHelper.cleanupTestDB();
     await global.testUtils.cleanup();
   });
 
@@ -70,7 +64,7 @@ describe('BookingController', () => {
       AuditLog.create.mockResolvedValue({ id: 1 });
 
       // Mock rule engine
-      const { validateBookingRules } = require('../../utils/ruleEngine');
+      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
       validateBookingRules.mockResolvedValue([]);
 
       // Act
@@ -160,7 +154,7 @@ describe('BookingController', () => {
       Booking.findConflicts.mockResolvedValue([]);
 
       // Mock rule engine
-      const { validateBookingRules } = require('../../utils/ruleEngine');
+      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
       validateBookingRules.mockResolvedValue(mockRuleErrors);
 
       // Act
@@ -367,7 +361,7 @@ describe('BookingController', () => {
       AuditLog.create.mockResolvedValue({ id: 1 });
 
       // Mock rule engine
-      const { validateBookingRules } = require('../../utils/ruleEngine');
+      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
       validateBookingRules.mockResolvedValue([]);
 
       // Act
@@ -442,7 +436,7 @@ describe('BookingController', () => {
       AuditLog.create.mockResolvedValue({ id: 1 });
 
       // Mock rule engine
-      const { validateBookingRules } = require('../../utils/ruleEngine');
+      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
       validateBookingRules.mockResolvedValue([]);
 
       // Act
