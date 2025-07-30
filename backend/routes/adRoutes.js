@@ -4,10 +4,11 @@ const router = express.Router();
 const AdController = require('../controllers/adController');
 const auth = require('../middleware/auth');
 const authorize = require('../middleware/authorize');
+const { adRequestLimit, impressionLimit } = require('../middleware/rateLimit');
 
 // Ad serving routes (no auth required for performance)
-router.post('/request', AdController.serveAd);
-router.post('/impression', AdController.trackImpression);
+router.post('/request', adRequestLimit, AdController.serveAd);
+router.post('/impression', impressionLimit, AdController.trackImpression);
 router.post('/click', AdController.trackClick);
 
 // Analytics routes (auth required)
