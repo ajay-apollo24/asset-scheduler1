@@ -17,6 +17,7 @@ const Auction = require('./models/Auction');
 const adRoutes = require('./routes/adRoutes');
 const creativeRoutes = require('./routes/creativeRoutes');
 const rtbRoutes = require('./routes/rtbRoutes');
+const campaignRoutes = require('./routes/campaignRoutes');
 
 // Utils
 const adServer = require('./utils/adServer');
@@ -39,6 +40,7 @@ module.exports = {
   // Routes
   adRoutes,
   creativeRoutes,
+  campaignRoutes,
   rtbRoutes,
   
   // Utils

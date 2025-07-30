@@ -5,6 +5,7 @@
 CREATE TABLE IF NOT EXISTS creatives (
   id SERIAL PRIMARY KEY,
   asset_id INTEGER REFERENCES assets(id) ON DELETE CASCADE,
+  campaign_id INTEGER REFERENCES campaigns(id) ON DELETE SET NULL,
   name VARCHAR(255) NOT NULL,
   type VARCHAR(50) NOT NULL CHECK (type IN ('image', 'video', 'html5', 'native')),
   content JSONB NOT NULL,

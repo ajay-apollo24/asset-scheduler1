@@ -2,61 +2,90 @@
 const db = require('../../../config/db');
 
 const Campaign = {
-  async create({ advertiser_id, name, budget, start_date, end_date, status = 'draft' }) {
-    // TODO: Implement campaign creation
-    console.log('Campaign.create called with:', { advertiser_id, name, budget, start_date, end_date, status });
-    return { id: 1, advertiser_id, name, budget, start_date, end_date, status };
+  async create({ advertiser_id, name, budget, start_date, end_date, targeting_criteria = {}, status = 'draft' }) {
+    const result = await db.query(
+      `INSERT INTO campaigns (advertiser_id, name, budget, start_date, end_date, status, targeting_criteria)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at`,
+      [advertiser_id, name, budget, start_date, end_date, status, JSON.stringify(targeting_criteria)]
+    );
+    return result.rows[0];
   },
 
   async findById(id) {
-    // TODO: Implement campaign retrieval by ID
-    console.log('Campaign.findById called with:', id);
-    return { 
-      id, 
-      advertiser_id: 1, 
-      name: 'Sample Campaign', 
-      budget: 1000.00, 
-      start_date: '2024-08-01',
-      end_date: '2024-08-31',
-      status: 'active'
-    };
+    const result = await db.query(
+      'SELECT id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at FROM campaigns WHERE id = $1',
+      [id]
+    );
+    return result.rows[0];
   },
 
   async findByAdvertiserId(advertiser_id) {
-    // TODO: Implement campaign retrieval by advertiser ID
-    console.log('Campaign.findByAdvertiserId called with:', advertiser_id);
-    return [
-      { id: 1, advertiser_id, name: 'Campaign 1', status: 'active' },
-      { id: 2, advertiser_id, name: 'Campaign 2', status: 'paused' }
-    ];
+    const result = await db.query(
+      'SELECT id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at FROM campaigns WHERE advertiser_id = $1 ORDER BY created_at DESC',
+      [advertiser_id]
+    );
+    return result.rows;
+  },
+
+  async findAll() {
+    const result = await db.query(
+      'SELECT id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at FROM campaigns ORDER BY created_at DESC'
+    );
+    return result.rows;
   },
 
   async update(id, updates) {
-    // TODO: Implement campaign update
-    console.log('Campaign.update called with:', { id, updates });
-    return { id, ...updates };
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    for (const key in updates) {
+      if (key === 'targeting_criteria') {
+        fields.push(`${key} = $${idx}`);
+        values.push(JSON.stringify(updates[key]));
+      } else {
+        fields.push(`${key} = $${idx}`);
+        values.push(updates[key]);
+      }
+      idx++;
+    }
+
+    fields.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(id);
+
+    const query = `UPDATE campaigns SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at`;
+    const result = await db.query(query, values);
+    return result.rows[0];
   },
 
   async getPerformanceMetrics(id) {
-    // TODO: Implement campaign performance metrics
-    console.log('Campaign.getPerformanceMetrics called with:', id);
+    const result = await db.query(
+      `SELECT
+        SUM(pm.impressions) as impressions,
+        SUM(pm.clicks) as clicks,
+        SUM(pm.revenue) as revenue,
+        CASE WHEN SUM(pm.impressions) > 0 THEN ROUND((SUM(pm.clicks)::DECIMAL / SUM(pm.impressions)) * 100, 2) ELSE 0 END as ctr
+       FROM creatives c
+       JOIN performance_metrics pm ON c.id = pm.creative_id
+       WHERE c.campaign_id = $1`,
+      [id]
+    );
+
+    const row = result.rows[0] || { impressions: 0, clicks: 0, revenue: 0, ctr: 0 };
     return {
-      impressions: 100000,
-      clicks: 1500,
-      ctr: 0.015,
-      spend: 250.00,
-      revenue: 500.00,
-      roas: 2.0
+      impressions: parseInt(row.impressions) || 0,
+      clicks: parseInt(row.clicks) || 0,
+      ctr: parseFloat(row.ctr) || 0,
+      revenue: parseFloat(row.revenue) || 0
     };
   },
 
   async getActiveCampaigns() {
-    // TODO: Implement active campaigns retrieval
-    console.log('Campaign.getActiveCampaigns called');
-    return [
-      { id: 1, name: 'Active Campaign 1', status: 'active' },
-      { id: 2, name: 'Active Campaign 2', status: 'active' }
-    ];
+    const result = await db.query(
+      'SELECT id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at FROM campaigns WHERE status = \'active\' ORDER BY start_date DESC'
+    );
+    return result.rows;
   }
 };
 

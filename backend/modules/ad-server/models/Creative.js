@@ -2,19 +2,19 @@
 const db = require('../../../config/db');
 
 const Creative = {
-  async create({ asset_id, name, type, content, dimensions, file_size, status = 'draft' }) {
+  async create({ asset_id, campaign_id = null, name, type, content, dimensions, file_size, status = 'draft' }) {
     const result = await db.query(
-      `INSERT INTO creatives (asset_id, name, type, content, dimensions, file_size, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, asset_id, name, type, content, dimensions, file_size, status, created_at, updated_at`,
-      [asset_id, name, type, JSON.stringify(content), JSON.stringify(dimensions), file_size, status]
+      `INSERT INTO creatives (asset_id, campaign_id, name, type, content, dimensions, file_size, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id, asset_id, campaign_id, name, type, content, dimensions, file_size, status, created_at, updated_at`,
+      [asset_id, campaign_id, name, type, JSON.stringify(content), JSON.stringify(dimensions), file_size, status]
     );
     return result.rows[0];
   },
 
   async findById(id) {
     const result = await db.query(
-      'SELECT id, asset_id, name, type, content, dimensions, file_size, status, created_at, updated_at FROM creatives WHERE id = $1',
+      'SELECT id, asset_id, campaign_id, name, type, content, dimensions, file_size, status, created_at, updated_at FROM creatives WHERE id = $1',
       [id]
     );
     return result.rows[0];
@@ -22,7 +22,7 @@ const Creative = {
 
   async findByAssetId(asset_id) {
     const result = await db.query(
-      'SELECT id, asset_id, name, type, content, dimensions, file_size, status, created_at, updated_at FROM creatives WHERE asset_id = $1 ORDER BY created_at DESC',
+      'SELECT id, asset_id, campaign_id, name, type, content, dimensions, file_size, status, created_at, updated_at FROM creatives WHERE asset_id = $1 ORDER BY created_at DESC',
       [asset_id]
     );
     return result.rows;
@@ -51,7 +51,7 @@ const Creative = {
     const query = `
       UPDATE creatives SET ${fields.join(', ')}
       WHERE id = $${idx}
-      RETURNING id, asset_id, name, type, content, dimensions, file_size, status, created_at, updated_at
+      RETURNING id, asset_id, campaign_id, name, type, content, dimensions, file_size, status, created_at, updated_at
     `;
 
     const result = await db.query(query, values);
@@ -99,7 +99,7 @@ const Creative = {
 
   async findByStatus(status) {
     const result = await db.query(
-      'SELECT id, asset_id, name, type, content, dimensions, file_size, status, created_at, updated_at FROM creatives WHERE status = $1 ORDER BY created_at DESC',
+      'SELECT id, asset_id, campaign_id, name, type, content, dimensions, file_size, status, created_at, updated_at FROM creatives WHERE status = $1 ORDER BY created_at DESC',
       [status]
     );
     return result.rows;
@@ -107,7 +107,7 @@ const Creative = {
 
   async getApprovedCreativesForAsset(asset_id) {
     const result = await db.query(
-      'SELECT id, asset_id, name, type, content, dimensions, file_size, status FROM creatives WHERE asset_id = $1 AND status = \'approved\' ORDER BY created_at DESC',
+      'SELECT id, asset_id, campaign_id, name, type, content, dimensions, file_size, status FROM creatives WHERE asset_id = $1 AND status = \'approved\' ORDER BY created_at DESC',
       [asset_id]
     );
     return result.rows;
