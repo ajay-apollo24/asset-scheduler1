@@ -1,12 +1,12 @@
 // __tests__/controllers/assetController.test.js
-const AssetController = require('../../controllers/assetController');
-const Asset = require('../../models/Asset');
-const AuditLog = require('../../models/AuditLog');
+const AssetController = require('../../modules/asset-booking/controllers/assetController');
+const Asset = require('../../modules/asset-booking/models/Asset');
+const AuditLog = require('../../modules/shared/models/AuditLog');
 const TestDBHelper = require('../../tests/helpers/dbHelper');
 
 // Mock dependencies
-jest.mock('../../models/Asset');
-jest.mock('../../models/AuditLog');
+jest.mock('../../modules/asset-booking/models/Asset');
+jest.mock('../../modules/shared/models/AuditLog');
 
 describe('AssetController', () => {
   let req, res, next;

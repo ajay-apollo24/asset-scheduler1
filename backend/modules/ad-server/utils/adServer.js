@@ -6,6 +6,7 @@ const AdRequest = require('../models/AdRequest');
 const logger = require('../../shared/utils/logger');
 const cache = require('../../shared/utils/cache');
 const MLEngine = require('./mlEngine');
+const db = require('../../../config/db');
 
 const AdServer = {
   async selectCreative(asset_id, user_context, page_context) {
@@ -381,4 +382,4 @@ const AdServer = {
   }
 };
 
-module.exports = AdServer; 
+module.exports = AdServer;

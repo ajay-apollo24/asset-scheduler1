@@ -1,4 +1,4 @@
-const MLEngine = require('../../utils/mlEngine');
+const MLEngine = require('../../modules/ad-server/utils/mlEngine');
 
 describe('MLEngine', () => {
   describe('predictCTR', () => {
