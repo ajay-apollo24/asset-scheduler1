@@ -24,7 +24,7 @@ const PlaceBidModal = ({ auction, onClose, onBidSubmitted }) => {
       setLoading(true);
       setError(null);
       
-      await apiClient.post('/api/bidding/place-bid', {
+      await apiClient.post('/bidding/place-bid', {
         booking_id: auction.id,
         bid_amount: parseFloat(formData.bid_amount),
         max_bid: formData.max_bid ? parseFloat(formData.max_bid) : null,

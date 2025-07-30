@@ -15,7 +15,7 @@ const BiddingCard = ({ auction, onPlaceBid, onStartAuction, onEndAuction, curren
   const fetchBids = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/api/bidding/${auction.id}/bids`);
+      const response = await apiClient.get(`/bidding/${auction.id}/bids`);
       setBids(response.data);
     } catch (err) {
       console.error('Error fetching bids:', err);

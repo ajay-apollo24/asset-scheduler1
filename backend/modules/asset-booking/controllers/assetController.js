@@ -75,6 +75,13 @@ const AssetController = {
         level: asset.level
       });
 
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'asset_create', user_id, {
+        assetId: asset.id,
+        assetName: asset.name
+      });
+
       res.status(201).json(asset);
     } catch (err) {
       const duration = Date.now() - startTime;
@@ -208,6 +215,13 @@ const AssetController = {
       });
 
       logger.asset('UPDATE_SUCCESS', id, user_id, {
+        updatedFields: Object.keys(updates)
+      });
+
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'asset_update', user_id, {
+        assetId: id,
         updatedFields: Object.keys(updates)
       });
 

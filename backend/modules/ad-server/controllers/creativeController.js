@@ -70,6 +70,14 @@ const CreativeController = {
         asset_id
       });
 
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'creative_create', user_id, {
+        creativeId: creative.id,
+        assetId: asset_id,
+        name
+      });
+
       res.status(201).json(creative);
     } catch (err) {
       const duration = Date.now() - startTime;
@@ -186,6 +194,13 @@ const CreativeController = {
       logger.performance('CREATIVE_UPDATE', duration, { creativeId: id });
 
       logger.creative('UPDATE_SUCCESS', id, user_id);
+
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'creative_update', user_id, {
+        creativeId: id,
+        updates: Object.keys(updates)
+      });
 
       res.json(creative);
     } catch (err) {

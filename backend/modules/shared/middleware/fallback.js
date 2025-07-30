@@ -102,7 +102,7 @@ const fallbackMiddleware = {
     const rateLimitKey = `rate_limit:${req.user?.user_id || req.ip}`;
     const currentTime = Date.now();
     const windowMs = 15 * 60 * 1000; // 15 minutes
-    const maxRequests = 100;
+    const maxRequests = process.env.NODE_ENV === 'production' ? 100 : 1000; // Higher limit for development
 
     try {
       const userRequests = req.app.locals.rateLimit?.get(rateLimitKey) || [];

@@ -131,6 +131,14 @@ const BookingController = {
         spanDays
       });
 
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'booking_create', user_id, {
+        bookingId: booking.id,
+        assetId: asset_id,
+        title
+      });
+
       res.status(201).json(booking);
     } catch (err) {
       const duration = Date.now() - startTime;
@@ -256,6 +264,14 @@ const BookingController = {
       });
 
       logger.booking('UPDATE_STATUS_SUCCESS', id, user_id, { status });
+      
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'booking_status_update', user_id, {
+        bookingId: id,
+        status
+      });
+      
       res.json(updated);
     } catch (err) {
       const duration = Date.now() - startTime;
@@ -316,6 +332,14 @@ const BookingController = {
       });
 
       logger.booking('DELETE_SUCCESS', id, user_id);
+      
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'booking_delete', user_id, {
+        bookingId: id,
+        deletionType: 'soft_delete'
+      });
+      
       res.json(deleted);
     } catch (err) {
       const duration = Date.now() - startTime;
@@ -595,6 +619,14 @@ const BookingController = {
         lob,
         estimatedCost: updated.estimated_cost,
         spanDays
+      });
+
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'booking_update', user.user_id, {
+        bookingId: id,
+        title,
+        estimatedCost: updated.estimated_cost
       });
 
       res.json(updated);

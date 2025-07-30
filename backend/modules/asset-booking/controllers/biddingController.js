@@ -49,6 +49,14 @@ const BiddingController = {
           newAmount: bid_amount
         });
 
+        // Invalidate related cache entries
+        const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+        cacheInvalidation.smartInvalidate(req, 'bid_update', user_id, {
+          bidId: updatedBid.id,
+          bookingId: booking_id,
+          newAmount: bid_amount
+        });
+
         return res.json({
           message: 'Bid updated successfully',
           bid: updatedBid
@@ -76,6 +84,14 @@ const BiddingController = {
         userId: user_id,
         bookingId: booking_id,
         bidId: newBid.id,
+        bidAmount: bid_amount
+      });
+
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'bid_create', user_id, {
+        bidId: newBid.id,
+        bookingId: booking_id,
         bidAmount: bid_amount
       });
 
@@ -223,6 +239,12 @@ const BiddingController = {
         bookingId: booking_id
       });
 
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'auction_start', user_id, {
+        bookingId: booking_id
+      });
+
       res.json({
         message: 'Auction started successfully',
         booking: updatedBooking
@@ -283,6 +305,14 @@ const BiddingController = {
         bookingId: booking_id,
         winnerId: winner.id,
         winnerLob: winner.lob,
+        winningBid: winner.bid_amount
+      });
+
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'auction_end', user_id, {
+        bookingId: booking_id,
+        winnerId: winner.id,
         winningBid: winner.bid_amount
       });
 
@@ -348,6 +378,14 @@ const BiddingController = {
 
       logger.info('Auto-bid placed', {
         userId: user_id,
+        bookingId: booking_id,
+        bidAmount: newBid.bid_amount,
+        maxAmount: max_amount
+      });
+
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'auto_bid', user_id, {
         bookingId: booking_id,
         bidAmount: newBid.bid_amount,
         maxAmount: max_amount

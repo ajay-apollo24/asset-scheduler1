@@ -21,10 +21,10 @@ const Dashboard = () => {
     try {
       setLoading(true);
       const [assetsRes, bookingsRes, auctionsRes, approvalsRes] = await Promise.all([
-        apiClient.get('/api/assets'),
-        apiClient.get('/api/bookings'),
-        apiClient.get('/api/bookings?auction_status=active'),
-        apiClient.get('/api/approvals?status=pending')
+        apiClient.get('/assets'),
+        apiClient.get('/bookings'),
+        apiClient.get('/bookings?auction_status=active'),
+        apiClient.get('/approvals?status=pending')
       ]);
 
       setStats({

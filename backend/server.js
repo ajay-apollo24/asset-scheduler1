@@ -37,6 +37,7 @@ app.use('/api/users', shared.userRoutes);
 app.use('/api/reports', shared.reportRoutes);
 app.use('/api/logs', shared.logRoutes);
 app.use('/api/audit', shared.auditRoutes);
+app.use('/api/cache', shared.cacheRoutes);
 
 // Route mounting - Asset Booking Routes
 app.use('/api/assets', assetBooking.assetRoutes);

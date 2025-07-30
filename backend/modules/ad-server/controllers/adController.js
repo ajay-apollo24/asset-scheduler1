@@ -131,6 +131,10 @@ const AdController = {
         impression_id: impression.id
       });
 
+      // Invalidate analytics cache
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.invalidateDashboard(req, 'impression_track', user_id);
+
       // Return 1x1 pixel
       res.set('Content-Type', 'image/gif');
       res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -197,6 +201,10 @@ const AdController = {
         destination_url: destinationUrl,
         click_id: click.id
       });
+
+      // Invalidate analytics cache
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.invalidateDashboard(req, 'click_track', user_id);
 
       // Redirect to destination URL
       res.redirect(destinationUrl);

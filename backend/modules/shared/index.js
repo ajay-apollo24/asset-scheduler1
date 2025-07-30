@@ -7,6 +7,7 @@ const UserController = require('./controllers/userController');
 const AuditController = require('./controllers/auditController');
 const LogController = require('./controllers/logController');
 const ReportController = require('./controllers/reportController');
+const CacheController = require('./controllers/cacheController');
 
 // Models
 const User = require('./models/User');
@@ -19,6 +20,7 @@ const userRoutes = require('./routes/userRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const logRoutes = require('./routes/logRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const cacheRoutes = require('./routes/cacheRoutes');
 
 // Middleware
 const auth = require('./middleware/auth');
@@ -32,6 +34,7 @@ const logger = require('./utils/logger');
 const cache = require('./utils/cache');
 const validators = require('./utils/validators');
 const logViewer = require('./utils/logViewer');
+const cacheInvalidation = require('./utils/cacheInvalidation');
 
 module.exports = {
   // Controllers
@@ -40,6 +43,7 @@ module.exports = {
   AuditController,
   LogController,
   ReportController,
+  CacheController,
   
   // Models
   User,
@@ -52,6 +56,7 @@ module.exports = {
   auditRoutes,
   logRoutes,
   reportRoutes,
+  cacheRoutes,
   
   // Middleware
   auth,
@@ -64,5 +69,6 @@ module.exports = {
   logger,
   cache,
   validators,
-  logViewer
+  logViewer,
+  cacheInvalidation
 }; 

@@ -20,7 +20,7 @@ const Bidding = () => {
   const fetchAuctions = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/api/bookings?auction_status=active');
+      const response = await apiClient.get('/bookings?auction_status=active');
       setAuctions(response.data);
       setError(null);
     } catch (err) {
@@ -44,7 +44,7 @@ const Bidding = () => {
 
   const handleStartAuction = async (bookingId) => {
     try {
-      await apiClient.put(`/api/bidding/${bookingId}/start`);
+      await apiClient.put(`/bidding/${bookingId}/start`);
       fetchAuctions(); // Refresh the list
     } catch (err) {
       setError('Failed to start auction');
@@ -54,7 +54,7 @@ const Bidding = () => {
 
   const handleEndAuction = async (bookingId) => {
     try {
-      await apiClient.put(`/api/bidding/${bookingId}/end`);
+      await apiClient.put(`/bidding/${bookingId}/end`);
       fetchAuctions(); // Refresh the list
     } catch (err) {
       setError('Failed to end auction');

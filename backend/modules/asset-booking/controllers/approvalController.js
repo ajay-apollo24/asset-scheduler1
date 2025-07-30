@@ -155,6 +155,14 @@ const ApprovalController = {
         bookingId: approval.booking_id
       });
 
+      // Invalidate related cache entries
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'approval_action', user_id, {
+        approvalId: id,
+        bookingId: approval.booking_id,
+        status
+      });
+
       res.json(approval);
     } catch (err) {
       const duration = Date.now() - startTime;
