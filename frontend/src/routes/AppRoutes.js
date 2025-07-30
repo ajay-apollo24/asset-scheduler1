@@ -7,6 +7,7 @@ import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import Assets from '../pages/Assets';
 import Bookings from '../pages/Bookings';
+import Bidding from '../pages/Bidding';
 import Approvals from '../pages/Approvals';
 import Reports from '../pages/Reports';
 
@@ -36,6 +37,11 @@ const AppRoutes = () => {
         <Route path="/bookings" element={
           <PrivateRoute>
             <Bookings />
+          </PrivateRoute>
+        } />
+        <Route path="/bidding" element={
+          <PrivateRoute>
+            <Bidding />
           </PrivateRoute>
         } />
         <Route path="/approvals" element={

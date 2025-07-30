@@ -27,6 +27,7 @@ const Layout = ({ children }) => {
         <Link to="/" className="btn btn-ghost btn-sm">Dashboard</Link>
         <Link to="/assets" className="btn btn-ghost btn-sm">Assets</Link>
         <Link to="/bookings" className="btn btn-ghost btn-sm">Bookings</Link>
+        <Link to="/bidding" className="btn btn-ghost btn-sm">Bidding</Link>
         <Link to="/approvals" className="btn btn-ghost btn-sm">Approvals</Link>
         <Link to="/reports" className="btn btn-ghost btn-sm">Reports</Link>
       </nav>
