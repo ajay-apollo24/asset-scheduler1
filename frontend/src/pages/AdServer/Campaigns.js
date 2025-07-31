@@ -23,7 +23,16 @@ const Campaigns = () => {
     totalRevenue: 0
   });
 
-  const { user, isAdmin } = useAuth();
+  const auth = useAuth();
+  const { user } = auth;
+  const { isAdmin } = auth;
+
+  console.log('🔍 Auth context debug:', {
+    user,
+    isAdmin: typeof isAdmin,
+    roles: user?.roles,
+    isAdminResult: isAdmin ? isAdmin() : 'function not available'
+  });
 
   const fetchCampaigns = async () => {
     try {
@@ -41,7 +50,7 @@ const Campaigns = () => {
       let campaignsData = response.data;
       
       // Filter campaigns based on user role
-      if (!isAdmin) {
+      if (!isAdmin()) {
         campaignsData = campaignsData.filter(campaign => campaign.advertiser_id === user?.id);
         console.log('🔍 Filtered campaigns for user:', campaignsData.length, 'of', response.data.length);
       } else {
