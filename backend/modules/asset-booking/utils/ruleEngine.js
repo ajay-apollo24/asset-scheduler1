@@ -180,6 +180,13 @@ async function validateBookingRules(booking) {
   // 5. Cool-down period between repeat bookings
   if (ruleConfig.cooldownPeriod.enabled) {
     const last = await Booking.findLastBookingByAssetLOB(booking.asset_id, booking.lob);
+    
+    logger.info('Cooldown rule debug', {
+      searchingFor: { asset_id: booking.asset_id, lob: booking.lob },
+      foundBooking: last ? { id: last.id, asset_id: last.asset_id, lob: last.lob, end_date: last.end_date } : null,
+      currentBookingId: currentId
+    });
+    
     if (last && String(last.id) !== currentId) {
       const gapStart = addDays(toDate(last.end_date), ruleConfig.cooldownPeriod.days);
       const passed = !isBefore(toDate(booking.start_date), gapStart);

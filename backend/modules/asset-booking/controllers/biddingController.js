@@ -1,7 +1,9 @@
 // controllers/biddingController.js
 const Bid = require('../models/Bid');
 const Booking = require('../models/Booking');
+const Asset = require('../models/Asset');
 const fairAllocation = require('../utils/fairAllocation');
+const biddingValidation = require('../utils/biddingValidation');
 const logger = require('../../shared/utils/logger');
 
 const BiddingController = {
@@ -34,6 +36,45 @@ const BiddingController = {
         });
       }
 
+      // Get asset details for validation
+      const asset = await Asset.findById(booking.asset_id);
+      if (!asset) {
+        return res.status(404).json({ message: 'Asset not found' });
+      }
+
+      // Validate bid against limits and budgets
+      const validation = await biddingValidation.validateBid({
+        booking_id,
+        bid_amount,
+        max_bid,
+        user_id,
+        lob: booking.lob
+      }, asset);
+
+      if (!validation.valid) {
+        logger.warn('Bid validation failed', {
+          userId: user_id,
+          bookingId: booking_id,
+          bidAmount: bid_amount,
+          errors: validation.errors
+        });
+        
+        return res.status(400).json({ 
+          message: 'Bid validation failed',
+          errors: validation.errors,
+          warnings: validation.warnings
+        });
+      }
+
+      // Log warnings if any
+      if (validation.warnings.length > 0) {
+        logger.warn('Bid validation warnings', {
+          userId: user_id,
+          bookingId: booking_id,
+          warnings: validation.warnings
+        });
+      }
+
       // Check if user has already bid
       const existingBids = await Bid.getActiveBids(booking_id);
       const userBid = existingBids.find(bid => bid.user_id === user_id);
@@ -56,6 +97,9 @@ const BiddingController = {
           bookingId: booking_id,
           newAmount: bid_amount
         });
+        
+        // Also specifically invalidate the bid fetching cache for this booking
+        cacheInvalidation.invalidatePatterns(req, [`/api/bidding/bookings/${booking_id}/bids`], 'bid_update_specific', user_id);
 
         return res.json({
           message: 'Bid updated successfully',
@@ -94,6 +138,9 @@ const BiddingController = {
         bookingId: booking_id,
         bidAmount: bid_amount
       });
+      
+      // Also specifically invalidate the bid fetching cache for this booking
+      cacheInvalidation.invalidatePatterns(req, [`/api/bidding/bookings/${booking_id}/bids`], 'bid_create_specific', user_id);
 
       res.status(201).json({
         message: 'Bid placed successfully',
@@ -115,7 +162,7 @@ const BiddingController = {
    */
   async getBidsForBooking(req, res) {
     const { booking_id } = req.params;
-    const user_id = req.user.user_id;
+    const user_id = req.user?.user_id || null; // Handle unauthenticated requests
 
     try {
       const bids = await Bid.getActiveBids(booking_id);
@@ -403,6 +450,36 @@ const BiddingController = {
         bookingId: booking_id
       });
       res.status(500).json({ message: 'Failed to place auto-bid' });
+    }
+  },
+
+  /**
+   * Get budget information for a user/LOB
+   */
+  async getBudgetInfo(req, res) {
+    const { lob } = req.query;
+    const user_id = req.user?.user_id || null;
+
+    try {
+      if (!lob) {
+        return res.status(400).json({ message: 'LOB parameter is required' });
+      }
+
+      const budgetInfo = await biddingValidation.getBudgetInfo(user_id, lob);
+      
+      res.json({
+        lob: lob,
+        budgetInfo,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      logger.logError(error, {
+        context: 'get_budget_info',
+        userId: user_id,
+        lob
+      });
+      res.status(500).json({ message: 'Failed to get budget info' });
     }
   }
 };

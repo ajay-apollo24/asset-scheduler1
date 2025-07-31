@@ -216,6 +216,11 @@ const fallbackMiddleware = {
         return next();
       }
 
+      // Skip caching for bidding endpoints (real-time data)
+      if (req.originalUrl.includes('/api/bidding/')) {
+        return next();
+      }
+
       const cachedResponse = req.app.locals.responseCache?.get(cacheKey);
       if (cachedResponse && Date.now() - cachedResponse.timestamp < ttl) {
         logger.info('Serving cached response', {

@@ -54,6 +54,17 @@ const Approval = {
       [booking_id]
     );
     return Number(rows[0].pending) === 0;
+  },
+
+  async findById(approval_id) {
+    const { rows } = await db.query(
+      `SELECT a.*, b.title AS booking_title, b.lob AS booking_lob, b.purpose AS booking_purpose
+       FROM approvals a
+       JOIN bookings b ON a.booking_id = b.id
+       WHERE a.id = $1`,
+      [approval_id]
+    );
+    return rows[0];
   }
 };
 

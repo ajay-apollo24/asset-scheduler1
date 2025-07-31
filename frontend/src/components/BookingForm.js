@@ -4,7 +4,7 @@ import apiClient from '../api/apiClient';
 
 const BookingForm = ({ onCreated }) => {
   const [assets, setAssets] = useState([]);
-  const [form, setForm] = useState({ asset_id: '', title: '', lob: '', purpose: '', start_date: '', end_date: '' });
+  const [form, setForm] = useState({ asset_id: '', title: '', lob: '', purpose: '', start_date: '', end_date: '', start_auction: false });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -33,8 +33,24 @@ const BookingForm = ({ onCreated }) => {
     e.preventDefault();
     setError('');
     try {
-      await apiClient.post('/bookings', form);
-      setSuccess('Booking requested');
+      const response = await apiClient.post('/bookings', form);
+      const bookingId = response.data.id;
+      
+      // If start_auction is checked, automatically approve and start auction
+      if (form.start_auction) {
+        try {
+          // Auto-approve the booking (admin only)
+          await apiClient.post(`/bookings/${bookingId}/status`, { status: 'approved' });
+          // Start the auction
+          await apiClient.post(`/bidding/bookings/${bookingId}/auction/start`);
+          setSuccess('Booking created and auction started!');
+        } catch (auctionErr) {
+          setSuccess('Booking created, but failed to start auction. You can start it manually from the Bookings page.');
+        }
+      } else {
+        setSuccess('Booking requested');
+      }
+      
       setError('');
       onCreated?.();
     } catch (err) {
@@ -151,6 +167,26 @@ const BookingForm = ({ onCreated }) => {
             required
           />
         </div>
+      </div>
+
+      {/* Auction Option */}
+      <div className="mb-4">
+        <label className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            name="start_auction"
+            checked={form.start_auction}
+            onChange={(e) => setForm({ ...form, start_auction: e.target.checked })}
+            className="checkbox checkbox-primary"
+          />
+          <span className="text-sm">
+            <strong>Start auction immediately</strong>
+            <br />
+            <span className="text-gray-600 text-xs">
+              This will auto-approve the booking and start bidding right away (Admin only)
+            </span>
+          </span>
+        </label>
       </div>
 
       <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Submit</button>

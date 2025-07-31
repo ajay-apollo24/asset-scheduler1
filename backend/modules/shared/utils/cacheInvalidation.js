@@ -62,7 +62,7 @@ const CacheInvalidation = {
    * Invalidate all bidding-related cache entries
    */
   invalidateBidding(req, context, userId) {
-    return this.invalidatePatterns(req, ['/api/bidding', '/api/bids'], context, userId);
+    return this.invalidatePatterns(req, ['/api/bidding/bookings', '/api/bidding/bids', '/api/bidding'], context, userId);
   },
 
   /**

@@ -1,0 +1,67 @@
+{
+  "biddingLimits": {
+    "enabled": true,
+    "globalLimits": {
+      "minBidAmount": 100,
+      "maxBidAmount": 1000000,
+      "maxBidPercentageOfAssetValue": 150
+    },
+    "userLimits": {
+      "enabled": true,
+      "dailyBudgetLimit": 500000,
+      "monthlyBudgetLimit": 5000000,
+      "maxActiveBids": 10,
+      "maxBidPerAsset": 200000
+    },
+    "lobLimits": {
+      "enabled": true,
+      "budgets": {
+        "Credit Card": {
+          "dailyBudget": 200000,
+          "monthlyBudget": 2000000,
+          "maxBidAmount": 150000
+        },
+        "Diagnostics": {
+          "dailyBudget": 300000,
+          "monthlyBudget": 3000000,
+          "maxBidAmount": 200000
+        },
+        "Pharma": {
+          "dailyBudget": 400000,
+          "monthlyBudget": 4000000,
+          "maxBidAmount": 250000
+        }
+      },
+      "defaultBudget": {
+        "dailyBudget": 100000,
+        "monthlyBudget": 1000000,
+        "maxBidAmount": 100000
+      }
+    },
+    "assetLevelLimits": {
+      "enabled": true,
+      "primary": {
+        "maxBidMultiplier": 2.0,
+        "minBidPercentage": 50
+      },
+      "secondary": {
+        "maxBidMultiplier": 1.5,
+        "minBidPercentage": 30
+      },
+      "tertiary": {
+        "maxBidMultiplier": 1.2,
+        "minBidPercentage": 20
+      }
+    }
+  },
+  "fairBidding": {
+    "enabled": true,
+    "preventBidWars": true,
+    "maxBidIncrement": 10000,
+    "cooldownBetweenBids": 300000,
+    "warningThresholds": {
+      "highBidWarning": 80,
+      "budgetWarning": 90
+    }
+  }
+} 

@@ -49,6 +49,26 @@ const Bookings = () => {
     setEditingBooking(null);
   };
 
+  const handleStartAuction = async (bookingId) => {
+    try {
+      await apiClient.post(`/bidding/bookings/${bookingId}/auction/start`);
+      fetchBookings(); // Refresh to show updated auction status
+      setError('');
+    } catch (err) {
+      setError('Failed to start auction');
+    }
+  };
+
+  const handleEndAuction = async (bookingId) => {
+    try {
+      await apiClient.post(`/bidding/bookings/${bookingId}/auction/end`);
+      fetchBookings(); // Refresh to show updated auction status
+      setError('');
+    } catch (err) {
+      setError('Failed to end auction');
+    }
+  };
+
   return (
     <Layout>
       <h1 className="text-2xl font-semibold mb-6">Bookings</h1>
@@ -90,6 +110,7 @@ const Bookings = () => {
               <th>Start</th>
               <th>End</th>
               <th>Status</th>
+              <th>Auction</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -110,6 +131,42 @@ const Bookings = () => {
                     : 'text-warning'
                 }>
                   {b.status}
+                </td>
+                <td>
+                  <div className="flex flex-col gap-1">
+                    <span className={`badge badge-sm ${
+                      b.auction_status === 'active' 
+                        ? 'badge-success' 
+                        : b.auction_status === 'completed'
+                        ? 'badge-info'
+                        : b.auction_status === 'cancelled'
+                        ? 'badge-error'
+                        : 'badge-ghost'
+                    }`}>
+                      {b.auction_status || 'none'}
+                    </span>
+                    {user?.role === 'admin' && b.status === 'approved' && (
+                      <div className="flex gap-1">
+                        {!b.auction_status || b.auction_status === 'none' ? (
+                          <button
+                            onClick={() => handleStartAuction(b.id)}
+                            className="btn btn-xs btn-primary"
+                            title="Start Auction"
+                          >
+                            Start
+                          </button>
+                        ) : b.auction_status === 'active' ? (
+                          <button
+                            onClick={() => handleEndAuction(b.id)}
+                            className="btn btn-xs btn-warning"
+                            title="End Auction"
+                          >
+                            End
+                          </button>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
                 </td>
                 <td>
                   <div className="flex gap-2">

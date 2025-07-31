@@ -88,9 +88,9 @@ const BookingController = {
       const spanDays = differenceInCalendarDays(parseISO(end_date), parseISO(start_date)) + 1;
       booking.estimated_cost = spanDays * (asset.value_per_day || 0);
 
-      // create approval steps (simple 2-step workflow: admin → marketing_ops)
+      // create approval steps (simplified: only admin approval needed)
       const Approval = require('../models/Approval');
-      await Approval.createSteps(booking.id, ['admin', 'marketing_ops']);
+      await Approval.createSteps(booking.id, ['admin']);
 
       // Comprehensive audit logging
       await AuditLog.create({

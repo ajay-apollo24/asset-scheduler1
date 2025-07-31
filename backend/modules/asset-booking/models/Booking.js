@@ -116,7 +116,7 @@ const Booking = {
   async findLastBookingByAssetLOB(asset_id, lob) {
     const result = await db.query(
       `SELECT * FROM bookings
-       WHERE asset_id = $1 AND lob = $2 AND status IN ('pending', 'approved')
+       WHERE asset_id = $1 AND lob = $2 AND status IN ('pending', 'approved') AND is_deleted = false
        ORDER BY end_date DESC LIMIT 1`,
       [asset_id, lob]
     );
@@ -139,7 +139,7 @@ const Booking = {
 
   async softDelete(id) {
     const result = await db.query(
-      `UPDATE bookings SET is_deleted = true, status = 'deleted' WHERE id = $1 RETURNING *`,
+      `UPDATE bookings SET is_deleted = true WHERE id = $1 RETURNING *`,
       [id]
     );
     return result.rows[0];

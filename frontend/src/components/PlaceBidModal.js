@@ -1,5 +1,5 @@
 // src/components/PlaceBidModal.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import apiClient from '../api/apiClient';
 import Modal from './Modal';
 
@@ -11,6 +11,23 @@ const PlaceBidModal = ({ auction, onClose, onBidSubmitted }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [budgetInfo, setBudgetInfo] = useState(null);
+
+  // Fetch budget info when modal opens
+  useEffect(() => {
+    const fetchBudgetInfo = async () => {
+      try {
+        const response = await apiClient.get(`/bidding/budget-info?lob=${auction.lob}`);
+        setBudgetInfo(response.data.budgetInfo);
+      } catch (err) {
+        console.error('Failed to fetch budget info:', err);
+      }
+    };
+
+    if (auction.lob) {
+      fetchBudgetInfo();
+    }
+  }, [auction.lob]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,7 +41,7 @@ const PlaceBidModal = ({ auction, onClose, onBidSubmitted }) => {
       setLoading(true);
       setError(null);
       
-      await apiClient.post('/bidding/place-bid', {
+      await apiClient.post('/bidding/bids', {
         booking_id: auction.id,
         bid_amount: parseFloat(formData.bid_amount),
         max_bid: formData.max_bid ? parseFloat(formData.max_bid) : null,
@@ -82,6 +99,27 @@ const PlaceBidModal = ({ auction, onClose, onBidSubmitted }) => {
               </div>
             )}
           </div>
+
+          {/* Budget Information */}
+          {budgetInfo && (
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+              <h4 className="font-medium text-sm mb-2 text-blue-800">Budget Limits</h4>
+              <div className="space-y-1 text-xs text-blue-700">
+                <div className="flex justify-between">
+                  <span>Max bid for {auction.lob}:</span>
+                  <span className="font-medium">{formatCurrency(budgetInfo.lob.maxBidAmount)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Daily budget remaining:</span>
+                  <span className="font-medium">{formatCurrency(budgetInfo.lob.dailyRemaining)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Your daily budget remaining:</span>
+                  <span className="font-medium">{formatCurrency(budgetInfo.user.dailyRemaining)}</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
