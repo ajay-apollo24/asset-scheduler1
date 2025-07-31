@@ -1,5 +1,7 @@
 // middleware/fallback.js
 const logger = require('../../shared/utils/logger');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 /**
  * Graceful fallback middleware for API failures
@@ -209,7 +211,19 @@ const fallbackMiddleware = {
    */
   responseCache: (ttl = 300000) => { // 5 minutes default
     return (req, res, next) => {
-      const cacheKey = `${req.method}:${req.originalUrl}:${req.user?.user_id || 'anonymous'}`;
+      let userId = 'anonymous';
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          userId = decoded.user_id;
+        } catch (err) {
+          // ignore token errors and keep userId as anonymous
+        }
+      }
+
+      const cacheKey = `${req.method}:${req.originalUrl}:${userId}`;
       
       // Skip caching for non-GET requests
       if (req.method !== 'GET') {
@@ -225,7 +239,7 @@ const fallbackMiddleware = {
       if (cachedResponse && Date.now() - cachedResponse.timestamp < ttl) {
         logger.info('Serving cached response', {
           key: cacheKey,
-          userId: req.user?.user_id
+          userId
         });
         
         return res.json(cachedResponse.data);

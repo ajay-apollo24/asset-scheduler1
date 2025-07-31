@@ -43,6 +43,62 @@ const UserController = {
       logger.error(err);
       res.status(500).json({ message: 'Error retrieving user' });
     }
+  },
+
+  async update(req, res) {
+    try {
+      const updated = await User.update(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ message: 'User not found' });
+      res.json(updated);
+    } catch (err) {
+      logger.error(err);
+      res.status(500).json({ message: 'Failed to update user' });
+    }
+  },
+
+  async delete(req, res) {
+    try {
+      const deleted = await User.delete(req.params.id);
+      if (!deleted) return res.status(404).json({ message: 'User not found' });
+      res.json({ message: 'User deleted' });
+    } catch (err) {
+      logger.error(err);
+      res.status(500).json({ message: 'Failed to delete user' });
+    }
+  },
+
+  async getUserRoles(req, res) {
+    try {
+      const roles = await User.getUserRoles(req.params.id);
+      res.json(roles);
+    } catch (err) {
+      logger.error(err);
+      res.status(500).json({ message: 'Failed to get user roles' });
+    }
+  },
+
+  async assignRole(req, res) {
+    const { role_id, organization_id } = req.body;
+    try {
+      const result = await User.assignRole(req.params.id, role_id, organization_id);
+      res.status(201).json(result);
+    } catch (err) {
+      logger.error(err);
+      res.status(500).json({ message: 'Failed to assign role' });
+    }
+  },
+
+  async removeRole(req, res) {
+    const { roleId } = req.params;
+    const { organization_id } = req.body;
+    try {
+      const result = await User.removeRole(req.params.id, roleId, organization_id);
+      if (!result) return res.status(404).json({ message: 'Role not found' });
+      res.json(result);
+    } catch (err) {
+      logger.error(err);
+      res.status(500).json({ message: 'Failed to remove role' });
+    }
   }
 };
 

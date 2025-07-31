@@ -49,6 +49,11 @@ const Asset = {
     return result.rows[0];
   },
 
+  async delete(id) {
+    const result = await db.query('DELETE FROM assets WHERE id = $1 RETURNING *', [id]);
+    return result.rows[0];
+  },
+
   // Ad Server Enhancement Methods
   async getAdFormats(id) {
     // TODO: Implement ad formats retrieval
