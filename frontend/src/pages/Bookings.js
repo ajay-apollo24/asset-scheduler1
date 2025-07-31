@@ -11,7 +11,6 @@ const Bookings = () => {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
-  const [deletingBooking, setDeletingBooking] = useState(null);
   const { user } = useAuth();
 
   const fetchBookings = () => {
@@ -33,7 +32,6 @@ const Bookings = () => {
       try {
         await apiClient.delete(`/bookings/${booking.id}`);
         fetchBookings();
-        setDeletingBooking(null);
       } catch (err) {
         setError('Failed to delete booking');
       }

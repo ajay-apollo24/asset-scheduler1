@@ -28,6 +28,13 @@ const User = {
       [id]
     );
     return result.rows[0];
+  },
+
+  async findAll() {
+    const result = await db.query(
+      'SELECT id, email, role FROM users ORDER BY id'
+    );
+    return result.rows;
   }
 };
 

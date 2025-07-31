@@ -30,6 +30,7 @@ const Layout = ({ children }) => {
         <Link to="/bidding" className="btn btn-ghost btn-sm">Bidding</Link>
         <Link to="/approvals" className="btn btn-ghost btn-sm">Approvals</Link>
         <Link to="/reports" className="btn btn-ghost btn-sm">Reports</Link>
+        <Link to="/ad-server/campaigns" className="btn btn-ghost btn-sm">Campaigns</Link>
       </nav>
 
       <main className="flex-1 p-6">{children}</main>

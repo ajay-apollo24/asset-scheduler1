@@ -30,7 +30,25 @@ const Campaign = {
 
   async findAll() {
     const result = await db.query(
-      'SELECT id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at FROM campaigns ORDER BY created_at DESC'
+      `SELECT 
+        c.id, 
+        c.advertiser_id, 
+        c.name, 
+        c.budget, 
+        c.start_date, 
+        c.end_date, 
+        c.status, 
+        c.targeting_criteria, 
+        c.created_at, 
+        c.updated_at,
+        u.email as advertiser_name,
+        0 as impressions,
+        0 as clicks,
+        0 as revenue,
+        COALESCE(c.budget * 0.3, 0) as spent
+       FROM campaigns c
+       LEFT JOIN users u ON c.advertiser_id = u.id
+       ORDER BY c.created_at DESC`
     );
     return result.rows;
   },
