@@ -1,5 +1,5 @@
 //test script to check user role assignment
-const db = require('./config/db');
+const db = require('../backend/config/db');
 
 const checkUserRole = async () => {
   try {

@@ -1,6 +1,6 @@
 //test script to check permissions
 
-const db = require('./config/db');
+const db = require('../backend/config/db');
 
 const checkPermissions = async () => {
   try {

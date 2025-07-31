@@ -11,6 +11,7 @@ dotenv.config();
 const shared = require('./modules/shared');
 const assetBooking = require('./modules/asset-booking');
 const adServer = require('./modules/ad-server');
+const { applyRateLimit } = require('./modules/shared/middleware/rateLimit');
 
 const app = express();
 
@@ -31,7 +32,8 @@ app.use(bodyParser.json());
 
 // Fallback middleware
 app.use(shared.fallback.databaseFallback);
-app.use(shared.fallback.rateLimitFallback);
+// Remove the old rate limit fallback and use the new system
+app.use(applyRateLimit);
 app.use(shared.fallback.responseCache(300000)); // 5 minutes
 app.use(shared.fallback.healthCheckFallback);
 

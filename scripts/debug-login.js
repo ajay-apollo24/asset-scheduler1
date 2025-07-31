@@ -1,6 +1,6 @@
 //test script to debug login process
 
-const User = require('./modules/shared/models/User');
+const User = require('../backend/modules/shared/models/User');
 
 const debugLogin = async () => {
   try {
