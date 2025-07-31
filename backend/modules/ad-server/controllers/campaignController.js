@@ -2,10 +2,10 @@ const Campaign = require('../models/Campaign');
 const AuditLog = require('../../shared/models/AuditLog');
 const logger = require('../../shared/utils/logger');
 
-const CampaignController = {
+const campaignController = {
   async create(req, res) {
     const { advertiser_id, name, budget, start_date, end_date, status, targeting_criteria } = req.body;
-    const user_id = req.user.user_id;
+    const user_id = req.user?.user_id;
     const startTime = Date.now();
 
     logger.ad('CAMPAIGN_CREATE_ATTEMPT', null, user_id, { advertiser_id, name });
@@ -25,13 +25,15 @@ const CampaignController = {
         targeting_criteria: typeof targeting_criteria === 'string' ? targeting_criteria : JSON.stringify(targeting_criteria)
       });
 
-      await AuditLog.create({
-        user_id,
-        action: 'CREATE_CAMPAIGN',
-        entity_type: 'campaign',
-        entity_id: campaign.id,
-        metadata: { advertiser_id, name }
-      });
+      if (user_id) {
+        await AuditLog.create({
+          user_id,
+          action: 'CREATE_CAMPAIGN',
+          entity_type: 'campaign',
+          entity_id: campaign.id,
+          metadata: { advertiser_id, name }
+        });
+      }
 
       logger.performance('CAMPAIGN_CREATE', Date.now() - startTime, { campaignId: campaign.id });
       logger.ad('CAMPAIGN_CREATE_SUCCESS', campaign.id, user_id);
@@ -67,16 +69,18 @@ const CampaignController = {
   async update(req, res) {
     const { id } = req.params;
     const updates = req.body;
-    const user_id = req.user.user_id;
+    const user_id = req.user?.user_id;
     try {
       const campaign = await Campaign.update(id, updates);
-      await AuditLog.create({
-        user_id,
-        action: 'UPDATE_CAMPAIGN',
-        entity_type: 'campaign',
-        entity_id: id,
-        metadata: { updates }
-      });
+      if (user_id) {
+        await AuditLog.create({
+          user_id,
+          action: 'UPDATE_CAMPAIGN',
+          entity_type: 'campaign',
+          entity_id: id,
+          metadata: { updates }
+        });
+      }
       res.json(campaign);
     } catch (err) {
       logger.logError(err, { context: 'campaign_update', campaignId: id });
@@ -86,19 +90,24 @@ const CampaignController = {
 
   async delete(req, res) {
     const { id } = req.params;
-    const user_id = req.user.user_id;
+    const user_id = req.user?.user_id;
     try {
-      const campaign = await Campaign.delete(id);
-      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
-
-      await AuditLog.create({
-        user_id,
-        action: 'DELETE_CAMPAIGN',
-        entity_type: 'campaign',
-        entity_id: id
-      });
-
-      res.json({ message: 'Campaign deleted' });
+      const result = await Campaign.delete(id);
+      if (!result) {
+        return res.status(404).json({ message: 'Campaign not found' });
+      }
+      
+      if (user_id) {
+        await AuditLog.create({
+          user_id,
+          action: 'DELETE_CAMPAIGN',
+          entity_type: 'campaign',
+          entity_id: id,
+          metadata: { campaignId: id }
+        });
+      }
+      
+      res.json({ message: 'Campaign deleted successfully' });
     } catch (err) {
       logger.logError(err, { context: 'campaign_delete', campaignId: id });
       res.status(500).json({ message: 'Failed to delete campaign' });
@@ -108,16 +117,23 @@ const CampaignController = {
   async updateStatus(req, res) {
     const { id } = req.params;
     const { status } = req.body;
-    const user_id = req.user.user_id;
+    const user_id = req.user?.user_id;
+    
+    if (!status) {
+      return res.status(400).json({ message: 'Status is required' });
+    }
+
     try {
-      const campaign = await Campaign.updateStatus(id, status);
-      await AuditLog.create({
-        user_id,
-        action: 'UPDATE_CAMPAIGN_STATUS',
-        entity_type: 'campaign',
-        entity_id: id,
-        metadata: { status }
-      });
+      const campaign = await Campaign.update(id, { status });
+      if (user_id) {
+        await AuditLog.create({
+          user_id,
+          action: 'UPDATE_CAMPAIGN_STATUS',
+          entity_type: 'campaign',
+          entity_id: id,
+          metadata: { status }
+        });
+      }
       res.json(campaign);
     } catch (err) {
       logger.logError(err, { context: 'campaign_update_status', campaignId: id });
@@ -137,4 +153,4 @@ const CampaignController = {
   }
 };
 
-module.exports = CampaignController;
+module.exports = campaignController;

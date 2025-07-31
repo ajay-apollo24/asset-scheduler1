@@ -10,7 +10,7 @@ const Layout = ({ children }) => {
   const isActive = (path) => location.pathname === path;
 
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', permission: 'analytics:read' },
+    { path: '/', label: 'Dashboard', permission: 'analytics:read' },
     { path: '/assets', label: 'Assets', permission: 'campaign:read' },
     { path: '/bookings', label: 'Bookings', permission: 'campaign:read' },
     { path: '/bidding', label: 'Bidding', permission: 'campaign:read' },

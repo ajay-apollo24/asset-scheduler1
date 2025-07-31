@@ -3,8 +3,10 @@ import CalendarView from '../components/CalendarView';
 import { useState, useEffect } from 'react';
 import apiClient from '../api/apiClient';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const Dashboard = () => {
+  const { hasPermission } = useAuth();
   const [stats, setStats] = useState({
     totalAssets: 0,
     totalBookings: 0,
@@ -21,21 +23,21 @@ const Dashboard = () => {
   const fetchDashboardStats = async () => {
     try {
       setLoading(true);
-      const [assetsRes, bookingsRes, auctionsRes, approvalsRes, campaignsRes] = await Promise.all([
-        apiClient.get('/assets'),
-        apiClient.get('/bookings'),
-        apiClient.get('/bookings?auction_status=active'),
-        apiClient.get('/approvals?status=pending'),
-        apiClient.get('/campaigns')
-      ]);
+      const promises = [];
+      const newStats = { ...stats };
 
-      setStats({
-        totalAssets: assetsRes.data.length,
-        totalBookings: bookingsRes.data.length,
-        activeAuctions: auctionsRes.data.length,
-        pendingApprovals: approvalsRes.data.length,
-        totalCampaigns: campaignsRes.data.length
-      });
+      // Only fetch data for endpoints the user has permission to access
+      if (hasPermission('campaign:read')) {
+        promises.push(
+          apiClient.get('/assets').then(res => { newStats.totalAssets = res.data.length; }).catch(() => {}),
+          apiClient.get('/bookings').then(res => { newStats.totalBookings = res.data.length; }).catch(() => {}),
+          apiClient.get('/ad-server/campaigns').then(res => { newStats.totalCampaigns = res.data.length; }).catch(() => {})
+        );
+      }
+
+      // Wait for all API calls to complete
+      await Promise.all(promises);
+      setStats(newStats);
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
     } finally {
@@ -49,58 +51,81 @@ const Dashboard = () => {
       
       {loading ? (
         <div className="flex justify-center items-center h-32">
-          <div className="loading loading-spinner loading-lg"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="stat bg-base-100 shadow rounded-lg">
-            <div className="stat-title">Total Assets</div>
-            <div className="stat-value text-primary">{stats.totalAssets}</div>
-            <div className="stat-actions">
-              <Link to="/assets" className="btn btn-sm btn-primary">View Assets</Link>
-            </div>
-          </div>
-          
-          <div className="stat bg-base-100 shadow rounded-lg">
-            <div className="stat-title">Total Bookings</div>
-            <div className="stat-value text-secondary">{stats.totalBookings}</div>
-            <div className="stat-actions">
-              <Link to="/bookings" className="btn btn-sm btn-secondary">View Bookings</Link>
-            </div>
-          </div>
-          
-        <div className="stat bg-base-100 shadow rounded-lg">
-          <div className="stat-title">Active Auctions</div>
-          <div className="stat-value text-accent">{stats.activeAuctions}</div>
-          <div className="stat-actions">
-            <Link to="/bidding" className="btn btn-sm btn-accent">View Auctions</Link>
-          </div>
-        </div>
+          {hasPermission('campaign:read') && (
+            <>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="text-sm font-medium text-gray-600">Total Assets</div>
+                <div className="text-2xl font-bold text-blue-600">{stats.totalAssets}</div>
+                <div className="mt-2">
+                  <Link to="/assets" className="text-blue-600 hover:text-blue-800 text-sm">View Assets →</Link>
+                </div>
+              </div>
+              
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="text-sm font-medium text-gray-600">Total Bookings</div>
+                <div className="text-2xl font-bold text-green-600">{stats.totalBookings}</div>
+                <div className="mt-2">
+                  <Link to="/bookings" className="text-green-600 hover:text-green-800 text-sm">View Bookings →</Link>
+                </div>
+              </div>
 
-        <div className="stat bg-base-100 shadow rounded-lg">
-          <div className="stat-title">Total Campaigns</div>
-          <div className="stat-value text-info">{stats.totalCampaigns}</div>
-          <div className="stat-actions">
-            <Link to="/reports" className="btn btn-sm btn-info">View Campaigns</Link>
-          </div>
-        </div>
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="text-sm font-medium text-gray-600">Total Campaigns</div>
+                <div className="text-2xl font-bold text-purple-600">{stats.totalCampaigns}</div>
+                <div className="mt-2">
+                  <Link to="/ad-server/campaigns" className="text-purple-600 hover:text-purple-800 text-sm">View Campaigns →</Link>
+                </div>
+              </div>
+            </>
+          )}
 
-        <div className="stat bg-base-100 shadow rounded-lg">
-          <div className="stat-title">Pending Approvals</div>
-          <div className="stat-value text-warning">{stats.pendingApprovals}</div>
-          <div className="stat-actions">
-            <Link to="/approvals" className="btn btn-sm btn-warning">View Approvals</Link>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="text-sm font-medium text-gray-600">Welcome!</div>
+            <div className="text-lg font-semibold text-gray-800">Campaign Manager</div>
+            <div className="mt-2 text-sm text-gray-600">
+              Manage your campaigns and assets
             </div>
           </div>
         </div>
       )}
 
       <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-4">Calendar View</h2>
-        <p className="mb-4 text-gray-600">Use the calendar below to view and manage campaign bookings.</p>
+        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {hasPermission('campaign:create') && (
+            <Link to="/ad-server/campaigns" className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 transition-colors">
+              <div className="font-semibold">Create Campaign</div>
+              <div className="text-sm opacity-90">Start a new advertising campaign</div>
+            </Link>
+          )}
+          
+          {hasPermission('campaign:read') && (
+            <>
+              <Link to="/assets" className="bg-green-600 text-white p-4 rounded-lg hover:bg-green-700 transition-colors">
+                <div className="font-semibold">View Assets</div>
+                <div className="text-sm opacity-90">Manage advertising assets</div>
+              </Link>
+              
+              <Link to="/bookings" className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors">
+                <div className="font-semibold">View Bookings</div>
+                <div className="text-sm opacity-90">Check campaign bookings</div>
+              </Link>
+            </>
+          )}
+        </div>
       </div>
-      
-      <CalendarView />
+
+      {hasPermission('analytics:read') && (
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">Calendar View</h2>
+          <p className="mb-4 text-gray-600">Use the calendar below to view and manage campaign bookings.</p>
+          <CalendarView />
+        </div>
+      )}
     </Layout>
   );
 };

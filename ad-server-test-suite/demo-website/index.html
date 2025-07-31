@@ -11,14 +11,14 @@
 <body>
   <h1>Ad Server Demo</h1>
   <label>User Context (JSON):</label><br>
-  <textarea id="userCtx" rows="4" cols="50">{"ip":"127.0.0.1","user_agent":"demo"}</textarea><br>
+  <textarea id="userCtx" rows="4" cols="50">{"ip":"127.0.0.1","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}</textarea><br>
   <label>Page Context (JSON):</label><br>
   <textarea id="pageCtx" rows="4" cols="50">{"page_type":"demo"}</textarea><br>
   <button onclick="requestAd()">Request Ad</button>
   <div id="ad-slot">Ad will appear here</div>
 
 <script>
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://localhost:6510/api';
 
 async function requestAd() {
   const user_context = JSON.parse(document.getElementById('userCtx').value);

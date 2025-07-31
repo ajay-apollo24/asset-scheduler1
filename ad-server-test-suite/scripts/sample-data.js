@@ -3,7 +3,7 @@
 
 const axios = require('axios');
 
-const API_BASE = process.env.API_BASE || 'http://localhost:5000/api';
+const API_BASE = process.env.API_BASE || 'http://localhost:6510/api';
 const TOKEN = process.env.API_TOKEN || '';
 
 async function createCampaign(name) {

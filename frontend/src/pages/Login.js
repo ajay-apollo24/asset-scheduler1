@@ -19,7 +19,7 @@ const Login = () => {
     try {
       const result = await login(email, password);
       if (result.success) {
-        navigate('/dashboard');
+        navigate('/');
       } else {
         setError(result.error);
       }
@@ -97,9 +97,9 @@ const Login = () => {
             <p>Demo Accounts:</p>
             <div className="mt-2 space-y-1 text-xs">
               <p><strong>Platform Admin:</strong> platform.admin@adsaas.com / admin123</p>
-              <p><strong>Org Admin:</strong> ceo@techcorp.com / admin123</p>
-              <p><strong>Campaign Manager:</strong> campaigns@healthfirst.com / admin123</p>
-              <p><strong>Analyst:</strong> analyst@techcorp.com / admin123</p>
+              <p><strong>Org Admin:</strong> ceo@techcorp.com / ceo123</p>
+              <p><strong>Campaign Manager:</strong> campaigns@healthfirst.com / campaigns123</p>
+              <p><strong>Analyst:</strong> analyst@techcorp.com / analyst123</p>
             </div>
           </div>
         </form>
