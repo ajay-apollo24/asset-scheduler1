@@ -8,7 +8,9 @@ const { adRequestLimit, impressionLimit } = require('../../shared/middleware/rat
 
 // Ad serving routes (no auth required for performance)
 router.post('/request', adRequestLimit, AdController.serveAd);
+router.get('/impression', impressionLimit, AdController.trackImpression);
 router.post('/impression', impressionLimit, AdController.trackImpression);
+router.get('/click', AdController.trackClick);
 router.post('/click', AdController.trackClick);
 
 // Analytics routes (auth required)

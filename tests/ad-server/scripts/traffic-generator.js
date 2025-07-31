@@ -14,7 +14,7 @@ async function runTest() {
   for (let i = 0; i < REQUESTS; i++) {
     const start = Date.now();
     try {
-      await axios.post(`${API_BASE}/ads/request`, {
+      const response = await axios.post(`${API_BASE}/ads/request`, {
         asset_id: 1,
         user_context: { 
           ip: `203.0.${Math.floor(i/255)}.${i%255 + 1}`,
@@ -22,6 +22,15 @@ async function runTest() {
         },
         page_context: { page_type: 'test' }
       });
+      
+      // Track impression if available
+      if (response.data.tracking && response.data.tracking.impression_url) {
+        try {
+          await axios.get(response.data.tracking.impression_url);
+        } catch (error) {
+          // Ignore tracking errors
+        }
+      }
       successes++;
     } catch (err) {
       failures++;

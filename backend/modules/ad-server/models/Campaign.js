@@ -14,18 +14,70 @@ const Campaign = {
 
   async findById(id) {
     const result = await db.query(
-      'SELECT id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at FROM campaigns WHERE id = $1',
+      `SELECT 
+        c.id, 
+        c.advertiser_id, 
+        c.name, 
+        c.budget, 
+        c.start_date, 
+        c.end_date, 
+        c.status, 
+        c.targeting_criteria, 
+        c.created_at, 
+        c.updated_at,
+        u.email as advertiser_name,
+        COALESCE(SUM(pm.impressions), 0) as impressions,
+        COALESCE(SUM(pm.clicks), 0) as clicks,
+        COALESCE(SUM(pm.revenue), 0) as revenue
+       FROM campaigns c
+       LEFT JOIN users u ON c.advertiser_id = u.id
+       LEFT JOIN creatives cr ON c.id = cr.campaign_id
+       LEFT JOIN performance_metrics pm ON cr.id = pm.creative_id
+       WHERE c.id = $1
+       GROUP BY c.id, c.advertiser_id, c.name, c.budget, c.start_date, c.end_date, c.status, c.targeting_criteria, c.created_at, c.updated_at, u.email`,
       [id]
     );
-    return result.rows[0];
+    
+    const row = result.rows[0];
+    if (row) {
+      return {
+        ...row,
+        ctr: row.impressions > 0 ? ((row.clicks / row.impressions) * 100).toFixed(2) : '0.00'
+      };
+    }
+    return row;
   },
 
   async findByAdvertiserId(advertiser_id) {
     const result = await db.query(
-      'SELECT id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at FROM campaigns WHERE advertiser_id = $1 ORDER BY created_at DESC',
+      `SELECT 
+        c.id, 
+        c.advertiser_id, 
+        c.name, 
+        c.budget, 
+        c.start_date, 
+        c.end_date, 
+        c.status, 
+        c.targeting_criteria, 
+        c.created_at, 
+        c.updated_at,
+        COALESCE(SUM(pm.impressions), 0) as impressions,
+        COALESCE(SUM(pm.clicks), 0) as clicks,
+        COALESCE(SUM(pm.revenue), 0) as revenue
+       FROM campaigns c
+       LEFT JOIN creatives cr ON c.id = cr.campaign_id
+       LEFT JOIN performance_metrics pm ON cr.id = pm.creative_id
+       WHERE c.advertiser_id = $1
+       GROUP BY c.id, c.advertiser_id, c.name, c.budget, c.start_date, c.end_date, c.status, c.targeting_criteria, c.created_at, c.updated_at
+       ORDER BY c.created_at DESC`,
       [advertiser_id]
     );
-    return result.rows;
+    
+    // Calculate CTR for each campaign
+    return result.rows.map(row => ({
+      ...row,
+      ctr: row.impressions > 0 ? ((row.clicks / row.impressions) * 100).toFixed(2) : '0.00'
+    }));
   },
 
   async findAll() {
@@ -42,15 +94,23 @@ const Campaign = {
         c.created_at, 
         c.updated_at,
         u.email as advertiser_name,
-        0 as impressions,
-        0 as clicks,
-        0 as revenue,
+        COALESCE(SUM(pm.impressions), 0) as impressions,
+        COALESCE(SUM(pm.clicks), 0) as clicks,
+        COALESCE(SUM(pm.revenue), 0) as revenue,
         COALESCE(c.budget * 0.3, 0) as spent
        FROM campaigns c
        LEFT JOIN users u ON c.advertiser_id = u.id
+       LEFT JOIN creatives cr ON c.id = cr.campaign_id
+       LEFT JOIN performance_metrics pm ON cr.id = pm.creative_id
+       GROUP BY c.id, c.advertiser_id, c.name, c.budget, c.start_date, c.end_date, c.status, c.targeting_criteria, c.created_at, c.updated_at, u.email
        ORDER BY c.created_at DESC`
     );
-    return result.rows;
+    
+    // Calculate CTR for each campaign
+    return result.rows.map(row => ({
+      ...row,
+      ctr: row.impressions > 0 ? ((row.clicks / row.impressions) * 100).toFixed(2) : '0.00'
+    }));
   },
 
   async update(id, updates) {

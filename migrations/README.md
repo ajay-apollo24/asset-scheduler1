@@ -31,6 +31,7 @@ This directory contains all database migrations for the asset scheduler system.
 ## Environment Variables
 
 Set the following environment variables for database connection:
+
 - `DB_HOST` - Database host (default: localhost)
 - `DB_PORT` - Database port (default: 5432)
 - `DB_NAME` - Database name (default: asset_allocation)

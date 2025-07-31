@@ -3,6 +3,7 @@ const Asset = require('../../asset-booking/models/Asset');
 const Creative = require('../models/Creative');
 const Campaign = require('../models/Campaign');
 const AdRequest = require('../models/AdRequest');
+const PerformanceMetrics = require('../models/PerformanceMetrics');
 const logger = require('../../shared/utils/logger');
 const cache = require('../../shared/utils/cache');
 const MLEngine = require('./mlEngine');
@@ -372,34 +373,7 @@ const AdServer = {
 
   async updatePerformanceMetrics(creative_id, event_type, metadata = {}) {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Get current metrics for today
-      const result = await db.query(
-        'SELECT * FROM performance_metrics WHERE creative_id = $1 AND date = $2',
-        [creative_id, today]
-      );
-      
-      if (result.rows.length === 0) {
-        // Create new record for today
-        await db.query(
-          'INSERT INTO performance_metrics (creative_id, date, impressions, clicks, revenue) VALUES ($1, $2, 0, 0, 0)',
-          [creative_id, today]
-        );
-      }
-      
-      // Update metrics based on event type
-      let updateQuery = '';
-      if (event_type === 'impression') {
-        updateQuery = 'UPDATE performance_metrics SET impressions = impressions + 1 WHERE creative_id = $1 AND date = $2';
-      } else if (event_type === 'click') {
-        updateQuery = 'UPDATE performance_metrics SET clicks = clicks + 1 WHERE creative_id = $1 AND date = $2';
-      }
-      
-      if (updateQuery) {
-        await db.query(updateQuery, [creative_id, today]);
-      }
-      
+      await PerformanceMetrics.updateMetrics(creative_id, event_type, 1);
       return { success: true };
     } catch (error) {
       logger.error('Error in updatePerformanceMetrics', { error: error.message, creative_id, event_type });

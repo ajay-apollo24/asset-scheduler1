@@ -3,6 +3,7 @@ const Creative = require('../models/Creative');
 const Campaign = require('../models/Campaign');
 const AdRequest = require('../models/AdRequest');
 const Impression = require('../models/Impression');
+const Click = require('../models/Click');
 const AdServer = require('../utils/adServer');
 const logger = require('../../shared/utils/logger');
 
@@ -49,7 +50,11 @@ const AdController = {
       });
 
       // 5. Generate tracking URLs
-      const trackingUrls = await AdServer.generateTrackingUrls(adRequest.id, creative.id);
+      const trackingUrls = {
+        impression_url: `${req.protocol}://${req.get('host')}/api/ads/impression?ad_id=${adRequest.id}&creative_id=${creative.id}`,
+        click_url: `${req.protocol}://${req.get('host')}/api/ads/click?ad_id=${adRequest.id}&creative_id=${creative.id}`,
+        viewability_url: `${req.protocol}://${req.get('host')}/api/ads/viewability?ad_id=${adRequest.id}&creative_id=${creative.id}`
+      };
 
       // 6. Build ad response
       const adResponse = {
@@ -95,7 +100,9 @@ const AdController = {
   },
 
   async trackImpression(req, res) {
-    const { ad_id, creative_id, user_id, metadata } = req.body;
+    const { ad_id, creative_id } = req.query;
+    const user_id = req.body.user_id || req.query.user_id || 'anonymous';
+    const metadata = req.body.metadata || {};
     const startTime = Date.now();
 
     logger.ad('IMPRESSION_ATTEMPT', ad_id, user_id, {
@@ -111,8 +118,8 @@ const AdController = {
 
       // 2. Create impression record
       const impression = await Impression.create({ 
-        ad_request_id: ad_id,
-        creative_id, 
+        ad_request_id: parseInt(ad_id),
+        creative_id: parseInt(creative_id), 
         user_id, 
         metadata 
       });
@@ -153,7 +160,9 @@ const AdController = {
   },
 
   async trackClick(req, res) {
-    const { ad_id, creative_id, user_id, metadata } = req.body;
+    const { ad_id, creative_id } = req.query;
+    const user_id = req.body.user_id || req.query.user_id || 'anonymous';
+    const metadata = req.body.metadata || {};
     const startTime = Date.now();
 
     logger.ad('CLICK_ATTEMPT', ad_id, user_id, {
@@ -173,18 +182,24 @@ const AdController = {
         return res.status(404).json({ message: 'Creative not found' });
       }
 
-      // 3. Create click record
-      const click = await Impression.create({ 
-        ad_request_id: ad_id,
-        creative_id, 
+      // 3. Get the impression for this ad request
+      const impression = await Impression.findById(ad_id);
+      if (!impression) {
+        return res.status(404).json({ message: 'Impression not found' });
+      }
+
+      // 4. Create click record
+      const click = await Click.create({ 
+        impression_id: impression.id,
         user_id, 
+        destination_url: creative.content.click_url || creative.content.destination_url,
         metadata: { ...metadata, event_type: 'click' }
       });
 
-      // 4. Update performance metrics
+      // 5. Update performance metrics
       await AdServer.updatePerformanceMetrics(creative_id, 'click', metadata);
 
-      // 5. Get destination URL from creative content
+      // 6. Get destination URL from creative content
       const destinationUrl = creative.content.click_url || creative.content.destination_url;
       if (!destinationUrl) {
         return res.status(400).json({ message: 'No destination URL found' });

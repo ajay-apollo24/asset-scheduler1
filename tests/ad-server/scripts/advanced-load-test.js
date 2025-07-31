@@ -97,23 +97,25 @@ async function generateAdRequest(i) {
 }
 
 async function trackImpression(adResponse) {
-  if (!adResponse || !adResponse.impression_url) return;
+  if (!adResponse || !adResponse.tracking || !adResponse.tracking.impression_url) return;
   
   try {
-    await axios.get(adResponse.impression_url);
+    await axios.get(adResponse.tracking.impression_url);
     return true;
   } catch (error) {
+    console.log('Impression tracking failed:', error.message);
     return false;
   }
 }
 
 async function trackClick(adResponse) {
-  if (!adResponse || !adResponse.click_url) return;
+  if (!adResponse || !adResponse.tracking || !adResponse.tracking.click_url) return;
   
   try {
-    await axios.get(adResponse.click_url);
+    await axios.get(adResponse.tracking.click_url);
     return true;
   } catch (error) {
+    console.log('Click tracking failed:', error.message);
     return false;
   }
 }
