@@ -6,18 +6,20 @@ const seedTestCampaigns = async () => {
     console.log('Seeding test campaigns...');
 
     // Get existing users to use as advertisers
-    const usersResult = await db.query('SELECT id, email FROM users LIMIT 3');
+    const usersResult = await db.query('SELECT id, email, role FROM users WHERE role = \'requestor\' OR role = \'admin\' ORDER BY id');
     const users = usersResult.rows;
 
     if (users.length === 0) {
-      console.log('No users found. Please create users first.');
+      console.log('No users found. Please run seedSampleUser.js first to create users.');
       return;
     }
 
-    // Create test campaigns
+    console.log('Found users for campaigns:', users.map(u => `${u.email} (${u.role})`));
+
+    // Create test campaigns with specific user assignments
     const campaigns = [
       {
-        advertiser_id: users[0].id,
+        advertiser_id: users.find(u => u.email === 'credit.card@company.com')?.id || users[0].id,
         name: 'Credit Card Summer Campaign',
         budget: 500000,
         start_date: '2024-06-01',
@@ -30,7 +32,7 @@ const seedTestCampaigns = async () => {
         })
       },
       {
-        advertiser_id: users[1]?.id || users[0].id,
+        advertiser_id: users.find(u => u.email === 'diagnostics@company.com')?.id || users[0].id,
         name: 'Diagnostics Health Awareness',
         budget: 300000,
         start_date: '2024-07-01',
@@ -43,7 +45,7 @@ const seedTestCampaigns = async () => {
         })
       },
       {
-        advertiser_id: users[2]?.id || users[0].id,
+        advertiser_id: users.find(u => u.email === 'pharma@company.com')?.id || users[0].id,
         name: 'Pharma Product Launch',
         budget: 750000,
         start_date: '2024-08-01',
@@ -56,7 +58,7 @@ const seedTestCampaigns = async () => {
         })
       },
       {
-        advertiser_id: users[0].id,
+        advertiser_id: users.find(u => u.email === 'credit.card@company.com')?.id || users[0].id,
         name: 'Credit Card Winter Promotion',
         budget: 400000,
         start_date: '2024-11-01',

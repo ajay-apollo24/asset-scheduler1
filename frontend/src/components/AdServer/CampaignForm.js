@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
+import { useAuth } from '../../contexts/AuthContext';
 
 const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     advertiser_id: '',
@@ -36,6 +38,15 @@ const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
 
   useEffect(() => {
     fetchAdvertisers();
+    
+    // Set advertiser_id for non-admin users
+    if (user && user.role !== 'admin') {
+      setFormData(prev => ({
+        ...prev,
+        advertiser_id: user.id
+      }));
+    }
+    
     if (campaign) {
       setFormData({
         name: campaign.name || '',
@@ -162,20 +173,29 @@ const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
               <label className="label">
                 <span className="label-text">Advertiser *</span>
               </label>
-              <select
-                name="advertiser_id"
-                value={formData.advertiser_id}
-                onChange={handleInputChange}
-                className="select select-bordered w-full"
-                required
-              >
-                <option value="">Select advertiser</option>
-                {advertisers.map(advertiser => (
-                  <option key={advertiser.id} value={advertiser.id}>
-                    {advertiser.name}
-                  </option>
-                ))}
-              </select>
+              {user?.role === 'admin' ? (
+                <select
+                  name="advertiser_id"
+                  value={formData.advertiser_id}
+                  onChange={handleInputChange}
+                  className="select select-bordered w-full"
+                  required
+                >
+                  <option value="">Select advertiser</option>
+                  {advertisers.map(advertiser => (
+                    <option key={advertiser.id} value={advertiser.id}>
+                      {advertiser.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={user?.email || ''}
+                  className="input input-bordered w-full"
+                  disabled
+                />
+              )}
             </div>
 
             <div>

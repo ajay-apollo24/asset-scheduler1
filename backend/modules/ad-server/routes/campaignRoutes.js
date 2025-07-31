@@ -4,10 +4,10 @@ const CampaignController = require('../controllers/campaignController');
 const auth = require('../../shared/middleware/auth');
 const authorize = require('../../shared/middleware/authorize');
 
-router.post('/', CampaignController.create); // Temporarily remove auth for testing
-router.get('/', CampaignController.getAll); // Temporarily remove auth for testing
-router.get('/:id', auth, authorize(['admin', 'advertiser', 'analyst']), CampaignController.getById);
-router.put('/:id', auth, authorize(['admin', 'advertiser']), CampaignController.update);
-router.get('/:id/performance', auth, authorize(['admin', 'advertiser', 'analyst']), CampaignController.getPerformanceMetrics);
+router.post('/', auth, authorize(['admin', 'requestor']), CampaignController.create);
+router.get('/', auth, authorize(['admin', 'requestor']), CampaignController.getAll);
+router.get('/:id', auth, authorize(['admin', 'requestor']), CampaignController.getById);
+router.put('/:id', auth, authorize(['admin', 'requestor']), CampaignController.update);
+router.get('/:id/performance', auth, authorize(['admin', 'requestor']), CampaignController.getPerformanceMetrics);
 
 module.exports = router;

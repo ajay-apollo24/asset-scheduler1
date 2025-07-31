@@ -5,7 +5,7 @@ const logger = require('../../shared/utils/logger');
 const CampaignController = {
   async create(req, res) {
     const { advertiser_id, name, budget, start_date, end_date, status, targeting_criteria } = req.body;
-    const user_id = req.user?.user_id || 1; // Default to user ID 1 for testing
+    const user_id = req.user.user_id;
     const startTime = Date.now();
 
     logger.ad('CAMPAIGN_CREATE_ATTEMPT', null, user_id, { advertiser_id, name });

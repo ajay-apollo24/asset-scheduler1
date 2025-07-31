@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const CampaignCard = ({ campaign, onStatusChange, formatCurrency, formatNumber }) => {
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -117,35 +119,39 @@ const CampaignCard = ({ campaign, onStatusChange, formatCurrency, formatNumber }
       {/* Actions */}
       <div className="p-4">
         <div className="flex gap-2">
-          {/* Status Controls */}
-          {campaign.status === 'draft' && (
-            <button
-              onClick={() => handleStatusChange('active')}
-              disabled={loading}
-              className="btn btn-sm btn-success flex-1"
-            >
-              {loading ? <span className="loading loading-spinner loading-xs"></span> : 'Activate'}
-            </button>
-          )}
-          
-          {campaign.status === 'active' && (
-            <button
-              onClick={() => handleStatusChange('paused')}
-              disabled={loading}
-              className="btn btn-sm btn-warning flex-1"
-            >
-              {loading ? <span className="loading loading-spinner loading-xs"></span> : 'Pause'}
-            </button>
-          )}
-          
-          {campaign.status === 'paused' && (
-            <button
-              onClick={() => handleStatusChange('active')}
-              disabled={loading}
-              className="btn btn-sm btn-success flex-1"
-            >
-              {loading ? <span className="loading loading-spinner loading-xs"></span> : 'Resume'}
-            </button>
+          {/* Status Controls - Only for admin or campaign owner */}
+          {(user?.role === 'admin' || campaign.advertiser_id === user?.id) && (
+            <>
+              {campaign.status === 'draft' && (
+                <button
+                  onClick={() => handleStatusChange('active')}
+                  disabled={loading}
+                  className="btn btn-sm btn-success flex-1"
+                >
+                  {loading ? <span className="loading loading-spinner loading-xs"></span> : 'Activate'}
+                </button>
+              )}
+              
+              {campaign.status === 'active' && (
+                <button
+                  onClick={() => handleStatusChange('paused')}
+                  disabled={loading}
+                  className="btn btn-sm btn-warning flex-1"
+                >
+                  {loading ? <span className="loading loading-spinner loading-xs"></span> : 'Pause'}
+                </button>
+              )}
+              
+              {campaign.status === 'paused' && (
+                <button
+                  onClick={() => handleStatusChange('active')}
+                  disabled={loading}
+                  className="btn btn-sm btn-success flex-1"
+                >
+                  {loading ? <span className="loading loading-spinner loading-xs"></span> : 'Resume'}
+                </button>
+              )}
+            </>
           )}
 
           {/* View Details */}

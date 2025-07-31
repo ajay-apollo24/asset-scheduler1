@@ -5,8 +5,10 @@ import CampaignCard from '../../components/AdServer/CampaignCard';
 import CampaignStats from '../../components/AdServer/CampaignStats';
 import CampaignForm from '../../components/AdServer/CampaignForm';
 import Modal from '../../components/Modal';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Campaigns = () => {
+  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -26,7 +28,14 @@ const Campaigns = () => {
     try {
       setLoading(true);
       const response = await apiClient.get('/ad-server/campaigns');
-      setCampaigns(response.data);
+      let campaignsData = response.data;
+      
+      // Filter campaigns based on user role
+      if (user?.role !== 'admin') {
+        campaignsData = campaignsData.filter(campaign => campaign.advertiser_id === user?.id);
+      }
+      
+      setCampaigns(campaignsData);
       
       // Calculate stats
       const total = response.data.length;
@@ -104,12 +113,14 @@ const Campaigns = () => {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold">Campaign Management</h1>
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowCreateForm(true)}
-          >
-            Create Campaign
-          </button>
+          {(user?.role === 'admin' || user?.role === 'requestor') && (
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowCreateForm(true)}
+            >
+              Create Campaign
+            </button>
+          )}
         </div>
 
         {error && (
