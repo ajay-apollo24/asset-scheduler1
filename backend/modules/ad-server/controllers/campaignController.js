@@ -84,7 +84,48 @@ const CampaignController = {
     }
   },
 
-  async getPerformanceMetrics(req, res) {
+  async delete(req, res) {
+    const { id } = req.params;
+    const user_id = req.user.user_id;
+    try {
+      const campaign = await Campaign.delete(id);
+      if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
+
+      await AuditLog.create({
+        user_id,
+        action: 'DELETE_CAMPAIGN',
+        entity_type: 'campaign',
+        entity_id: id
+      });
+
+      res.json({ message: 'Campaign deleted' });
+    } catch (err) {
+      logger.logError(err, { context: 'campaign_delete', campaignId: id });
+      res.status(500).json({ message: 'Failed to delete campaign' });
+    }
+  },
+
+  async updateStatus(req, res) {
+    const { id } = req.params;
+    const { status } = req.body;
+    const user_id = req.user.user_id;
+    try {
+      const campaign = await Campaign.updateStatus(id, status);
+      await AuditLog.create({
+        user_id,
+        action: 'UPDATE_CAMPAIGN_STATUS',
+        entity_type: 'campaign',
+        entity_id: id,
+        metadata: { status }
+      });
+      res.json(campaign);
+    } catch (err) {
+      logger.logError(err, { context: 'campaign_update_status', campaignId: id });
+      res.status(500).json({ message: 'Failed to update campaign status' });
+    }
+  },
+
+  async getPerformance(req, res) {
     const { id } = req.params;
     try {
       const metrics = await Campaign.getPerformanceMetrics(id);

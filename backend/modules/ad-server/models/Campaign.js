@@ -77,6 +77,19 @@ const Campaign = {
     return result.rows[0];
   },
 
+  async delete(id) {
+    const result = await db.query('DELETE FROM campaigns WHERE id = $1 RETURNING *', [id]);
+    return result.rows[0];
+  },
+
+  async updateStatus(id, status) {
+    const result = await db.query(
+      'UPDATE campaigns SET status = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *',
+      [id, status]
+    );
+    return result.rows[0];
+  },
+
   async getPerformanceMetrics(id) {
     const result = await db.query(
       `SELECT

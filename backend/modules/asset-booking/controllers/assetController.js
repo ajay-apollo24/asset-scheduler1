@@ -236,6 +236,46 @@ const AssetController = {
       });
       res.status(500).json({ message: 'Failed to update asset' });
     }
+  },
+
+  async delete(req, res) {
+    const { id } = req.params;
+    const user_id = req.user.user_id;
+    const startTime = Date.now();
+
+    logger.asset('DELETE_ATTEMPT', id, user_id);
+
+    try {
+      const deleted = await Asset.delete(id);
+
+      if (!deleted) {
+        logger.warn('Asset delete failed - asset not found', { userId: user_id, assetId: id });
+        return res.status(404).json({ message: 'Asset not found' });
+      }
+
+      await AuditLog.create({
+        user_id,
+        action: 'DELETE_ASSET',
+        entity_type: 'asset',
+        entity_id: id,
+        metadata: { asset_name: deleted.name },
+        ip_address: req.ip,
+        user_agent: req.get('User-Agent')
+      });
+
+      const duration = Date.now() - startTime;
+      logger.performance('ASSET_DELETE', duration, { assetId: id, userId: user_id });
+      logger.asset('DELETE_SUCCESS', id, user_id);
+
+      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate(req, 'asset_delete', user_id, { assetId: id });
+
+      res.json({ message: 'Asset deleted' });
+    } catch (err) {
+      const duration = Date.now() - startTime;
+      logger.logError(err, { context: 'asset_delete', userId: user_id, assetId: id, duration });
+      res.status(500).json({ message: 'Failed to delete asset' });
+    }
   }
 };
 
