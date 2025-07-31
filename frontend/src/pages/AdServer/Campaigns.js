@@ -8,7 +8,6 @@ import Modal from '../../components/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Campaigns = () => {
-  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,15 +23,29 @@ const Campaigns = () => {
     totalRevenue: 0
   });
 
+  const { user, isAdmin } = useAuth();
+
   const fetchCampaigns = async () => {
     try {
       setLoading(true);
+      setError('');
+      console.log('🔄 Starting to fetch campaigns...');
+      console.log('👤 Current user:', user);
+      console.log('🔑 Token in localStorage:', localStorage.getItem('token') ? 'Present' : 'Missing');
+      
       const response = await apiClient.get('/ad-server/campaigns');
+      console.log('📊 Campaigns response:', response.data);
+      console.log('📈 Response status:', response.status);
+      console.log('📋 Response headers:', response.headers);
+      
       let campaignsData = response.data;
       
       // Filter campaigns based on user role
-      if (user?.role !== 'admin') {
+      if (!isAdmin) {
         campaignsData = campaignsData.filter(campaign => campaign.advertiser_id === user?.id);
+        console.log('🔍 Filtered campaigns for user:', campaignsData.length, 'of', response.data.length);
+      } else {
+        console.log('👑 Admin user - showing all campaigns');
       }
       
       setCampaigns(campaignsData);
@@ -49,6 +62,17 @@ const Campaigns = () => {
       const avgCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
       const totalRevenue = response.data.reduce((sum, c) => sum + (parseFloat(c.revenue || 0)), 0);
 
+      console.log('📊 Calculated stats:', {
+        total,
+        active,
+        paused,
+        completed,
+        totalSpend,
+        totalImpressions,
+        avgCTR,
+        totalRevenue
+      });
+
       setStats({
         total,
         active,
@@ -61,9 +85,17 @@ const Campaigns = () => {
       });
     } catch (err) {
       setError('Failed to load campaigns');
-      console.error('Error fetching campaigns:', err);
+      console.error('❌ Error fetching campaigns:', {
+        message: err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        config: err.config,
+        stack: err.stack
+      });
     } finally {
       setLoading(false);
+      console.log('🏁 Finished fetchCampaigns operation');
     }
   };
 
@@ -113,7 +145,7 @@ const Campaigns = () => {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold">Campaign Management</h1>
-          {(user?.role === 'admin' || user?.role === 'requestor') && (
+          {(isAdmin() || user?.roles?.some(role => role.name === 'requestor')) && (
             <button 
               className="btn btn-primary"
               onClick={() => setShowCreateForm(true)}

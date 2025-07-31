@@ -19,8 +19,15 @@ app.locals.rateLimit = new Map();
 app.locals.responseCache = new Map();
 app.locals.cache = new Map();
 
-// Request logging middleware (must be first)
-app.use(shared.logger.logRequest);
+// CORS configuration (must be first)
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+app.use(bodyParser.json());
 
 // Fallback middleware
 app.use(shared.fallback.databaseFallback);
@@ -28,8 +35,8 @@ app.use(shared.fallback.rateLimitFallback);
 app.use(shared.fallback.responseCache(300000)); // 5 minutes
 app.use(shared.fallback.healthCheckFallback);
 
-app.use(cors());
-app.use(bodyParser.json());
+// Request logging middleware (after CORS and body parsing)
+app.use(shared.logger.logRequest);
 
 // Route mounting - Shared Routes
 app.use('/api/auth', shared.authRoutes);

@@ -19,49 +19,68 @@ export const AuthProvider = ({ children }) => {
   const [roles, setRoles] = useState([]);
 
   useEffect(() => {
+    console.log('🔐 AuthContext: Initializing...');
     const token = localStorage.getItem('token');
+    console.log('🔑 AuthContext: Token found:', token ? 'Yes' : 'No');
+    
     if (token) {
+      console.log('🔑 AuthContext: Setting Authorization header');
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       verifyToken();
     } else {
+      console.log('🔑 AuthContext: No token, setting loading to false');
       setLoading(false);
     }
   }, []);
 
   const verifyToken = async () => {
     try {
+      console.log('🔐 AuthContext: Verifying token...');
       const response = await apiClient.post('/auth/verify');
+      console.log('🔐 AuthContext: Token verification response:', response.data);
+      
       if (response.data.valid) {
         const userData = response.data.user;
+        console.log('👤 AuthContext: Setting user data:', userData);
         setUser(userData);
         setPermissions(userData.permissions || []);
         setRoles(userData.roles || []);
+        console.log('🔐 AuthContext: User authenticated successfully');
       } else {
+        console.log('❌ AuthContext: Token invalid, logging out');
         logout();
       }
     } catch (error) {
-      console.error('Token verification failed:', error);
+      console.error('❌ AuthContext: Token verification failed:', error);
       logout();
     } finally {
       setLoading(false);
+      console.log('🔐 AuthContext: Token verification completed');
     }
   };
 
   const login = async (email, password) => {
     try {
+      console.log('🔐 AuthContext: Attempting login for:', email);
       const response = await apiClient.post('/auth/login', { email, password });
+      console.log('🔐 AuthContext: Login response:', response.data);
+      
       const { token, user: userData } = response.data;
       
+      console.log('🔑 AuthContext: Storing token in localStorage');
       localStorage.setItem('token', token);
+      console.log('🔑 AuthContext: Setting Authorization header');
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
+      console.log('👤 AuthContext: Setting user data:', userData);
       setUser(userData);
       setPermissions(userData.permissions || []);
       setRoles(userData.roles || []);
       
+      console.log('✅ AuthContext: Login successful');
       return { success: true };
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('❌ AuthContext: Login failed:', error);
       return { 
         success: false, 
         error: error.response?.data?.message || 'Login failed' 
@@ -132,6 +151,10 @@ export const AuthProvider = ({ children }) => {
     return hasRole('org_admin');
   };
 
+  const isAdmin = () => {
+    return hasRole('admin') || hasRole('platform_admin');
+  };
+
   const canManageCampaigns = () => {
     return hasAnyPermission(['campaign:create', 'campaign:update', 'campaign:delete']);
   };
@@ -160,6 +183,7 @@ export const AuthProvider = ({ children }) => {
     hasAnyRole,
     isPlatformAdmin,
     isOrgAdmin,
+    isAdmin,
     canManageCampaigns,
     canViewAnalytics,
     canManageUsers

@@ -218,6 +218,8 @@ const fallbackMiddleware = {
         try {
           const decoded = jwt.verify(token, JWT_SECRET);
           userId = decoded.user_id;
+          // Set req.user for logging middleware
+          req.user = decoded;
         } catch (err) {
           // ignore token errors and keep userId as anonymous
         }
