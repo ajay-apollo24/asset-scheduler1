@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import apiClient from '../../api/apiClient';
 import Layout from '../../components/Layout';
 import CampaignCard from '../../components/AdServer/CampaignCard';
@@ -34,7 +34,7 @@ const Campaigns = () => {
     isAdminResult: isAdmin ? isAdmin() : 'function not available'
   });
 
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -106,11 +106,11 @@ const Campaigns = () => {
       setLoading(false);
       console.log('🏁 Finished fetchCampaigns operation');
     }
-  };
+  }, [user, isAdmin]);
 
   useEffect(() => {
     fetchCampaigns();
-  }, []);
+  }, [fetchCampaigns]);
 
   const handleStatusChange = async (campaignId, newStatus) => {
     try {

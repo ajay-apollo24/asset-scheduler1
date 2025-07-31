@@ -36,6 +36,7 @@ This file consolidates all documentation from the repository into a single locat
 ---
 
 ## 📌 Planned Enhancements
+
 •	Role-Based Access (Admin / User)
 •	Recurring Bookings Support
 •	Approval Notifications (email or in-app)
@@ -47,6 +48,7 @@ This file consolidates all documentation from the repository into a single locat
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - PostgreSQL (or compatible RDBMS)
 - Docker (optional)
@@ -251,6 +253,7 @@ The ad server enhancement integrates with existing systems:
 ## 🎯 Phase 2: Enhanced Core Features (Weeks 3-4)
 
 ### **2.1 Real-Time Bidding (RTB) System**
+
 ```javascript
 // New RTB endpoints
 POST /api/ads/rtb/request     // RTB ad request
@@ -259,6 +262,7 @@ GET  /api/ads/rtb/auction     // Auction results
 ```
 
 **Implementation Tasks:**
+
 - [ ] Implement OpenRTB 2.5 specification
 - [ ] Create auction engine with multiple bidders
 - [ ] Add bid floor management
@@ -266,6 +270,7 @@ GET  /api/ads/rtb/auction     // Auction results
 - [ ] Add bid timeout handling
 
 ### **2.2 Advanced Targeting Engine**
+
 ```javascript
 // Enhanced targeting capabilities
 {
@@ -297,6 +302,7 @@ GET  /api/ads/rtb/auction     // Auction results
 ```
 
 ### **2.3 Machine Learning Integration**
+
 ```javascript
 // ML-powered features
 - [ ] CTR prediction models
@@ -311,6 +317,7 @@ GET  /api/ads/rtb/auction     // Auction results
 ## 🎯 Phase 3: Advanced Features (Weeks 5-6)
 
 ### **3.1 A/B Testing Framework**
+
 ```javascript
 // A/B testing endpoints
 POST /api/experiments/create          // Create experiment
@@ -319,6 +326,7 @@ POST /api/experiments/:id/stop        // Stop experiment
 ```
 
 **Features:**
+
 - [ ] Multi-variate testing
 - [ ] Statistical significance calculation
 - [ ] Automatic winner selection
@@ -326,6 +334,7 @@ POST /api/experiments/:id/stop        // Stop experiment
 - [ ] Experiment reporting
 
 ### **3.2 Programmatic Guaranteed**
+
 ```javascript
 // PG deal endpoints
 POST /api/deals/pg/create             // Create PG deal
@@ -345,6 +354,7 @@ GET  /api/ads/header-bidding/timeout  // Timeout config
 ## 🎯 Phase 4: Production Features (Weeks 7-8)
 
 ### **4.1 Advanced Analytics & Reporting**
+
 ```javascript
 // Enhanced analytics endpoints
 GET /api/analytics/realtime/dashboard     // Real-time dashboard
@@ -354,6 +364,7 @@ GET /api/analytics/creative/performance   // Creative analysis
 ```
 
 **Features:**
+
 - [ ] Real-time dashboards with WebSocket updates
 - [ ] Multi-touch attribution modeling
 - [ ] Audience segmentation analysis
@@ -361,6 +372,7 @@ GET /api/analytics/creative/performance   // Creative analysis
 - [ ] Custom report builder
 
 ### **4.2 Advanced Fraud Detection**
+
 ```javascript
 // Fraud detection endpoints
 POST /api/fraud/detect                  // Fraud detection
@@ -369,6 +381,7 @@ POST /api/fraud/blacklist              // Manage blacklists
 ```
 
 **Features:**
+
 - [ ] Bot detection with ML
 - [ ] Click fraud prevention
 - [ ] Impression fraud detection
@@ -376,6 +389,7 @@ POST /api/fraud/blacklist              // Manage blacklists
 - [ ] Device fingerprinting
 
 ### **4.3 Performance Optimization**
+
 ```javascript
 // Performance features
 - [ ] Redis caching for ad selection
@@ -390,6 +404,7 @@ POST /api/fraud/blacklist              // Manage blacklists
 ## 🎯 Phase 5: Enterprise Features (Weeks 9-10)
 
 ### **5.1 Multi-Tenant Architecture**
+
 ```javascript
 // Multi-tenant support
 - [ ] Publisher management
@@ -400,6 +415,7 @@ POST /api/fraud/blacklist              // Manage blacklists
 ```
 
 ### **5.2 Advanced Campaign Management**
+
 ```javascript
 // Campaign features
 - [ ] Budget pacing algorithms
@@ -410,6 +426,7 @@ POST /api/fraud/blacklist              // Manage blacklists
 ```
 
 ### **5.3 API Management**
+
 ```javascript
 // API management
 - [ ] Rate limiting per client
@@ -424,6 +441,7 @@ POST /api/fraud/blacklist              // Manage blacklists
 ## 🔧 Technical Implementation Details
 
 ### **Database Optimizations**
+
 ```sql
 -- Add these indexes for performance
 CREATE INDEX CONCURRENTLY idx_impressions_creative_timestamp ON impressions(creative_id, timestamp);
@@ -441,6 +459,7 @@ FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
 ```
 
 ### **Caching Strategy**
+
 ```javascript
 // Redis caching implementation
 const cacheKeys = {
@@ -460,6 +479,7 @@ const cacheTTL = {
 ```
 
 ### **API Rate Limiting**
+
 ```javascript
 // Rate limiting configuration
 const rateLimits = {
@@ -475,6 +495,7 @@ const rateLimits = {
 ## 📊 Monitoring & Observability
 
 ### **Key Metrics to Track**
+
 ```javascript
 const metrics = {
   performance: [
@@ -502,6 +523,7 @@ const metrics = {
 ```
 
 ### **Alerting Rules**
+
 ```yaml
 alerts:
   - name: "High Error Rate"
@@ -522,6 +544,7 @@ alerts:
 ## 🚀 Deployment Strategy
 
 ### **Infrastructure Requirements**
+
 ```yaml
 services:
   ad-server:
@@ -548,6 +571,7 @@ services:
 ```
 
 ### **CI/CD Pipeline**
+
 ```yaml
 stages:
   - test:
@@ -568,12 +592,14 @@ stages:
 ## 📈 Success Metrics
 
 ### **Technical KPIs**
+
 - Ad serve latency < 100ms (95th percentile)
 - Fill rate > 95%
 - Error rate < 1%
 - Uptime > 99.9%
 
 ### **Business KPIs**
+
 - Revenue growth > 20% month-over-month
 - CTR improvement > 15% through ML optimization
 - Fraud rate < 0.1%
@@ -593,6 +619,7 @@ stages:
 8. **Set up CI/CD pipeline** for automated deployments
 
 This roadmap provides a clear path from the current skeleton implementation to a production-ready, enterprise-grade ad server with extensive APIs and advanced features. 
+
 ---
 ## File: backend/API_DOCUMENTATION.md
 
@@ -619,6 +646,7 @@ Authorization: Bearer <your-jwt-token>
 ## 📊 Ad Serving Endpoints
 
 ### **Serve Ad**
+
 Serves an ad for a specific asset based on user and page context.
 
 ```http
