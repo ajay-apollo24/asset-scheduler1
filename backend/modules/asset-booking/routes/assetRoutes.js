@@ -1,12 +1,18 @@
 // routes/assetRoutes.js
 const express = require('express');
 const router = express.Router();
-const AssetController = require('../controllers/assetController');
-const authMiddleware = require('../../shared/middleware/auth');
+const assetController = require('../controllers/assetController');
+const auth = require('../../shared/middleware/auth');
+const rbac = require('../../shared/middleware/rbac');
 
-router.post('/', authMiddleware, AssetController.create);      // Admin creates asset
-router.get('/', authMiddleware, AssetController.getAll);       // Anyone can list
-router.get('/:id', authMiddleware, AssetController.getById);   // Get one asset
-router.put('/:id', authMiddleware, AssetController.update);    // Admin updates
+// Apply RBAC middleware to add permissions to request
+router.use(rbac.addPermissionsToRequest());
+
+// Asset routes with RBAC permissions
+router.get('/', auth, rbac.requirePermission('campaign:read'), assetController.getAll);
+router.post('/', auth, rbac.requirePermission('campaign:create'), assetController.create);
+router.get('/:id', auth, rbac.requirePermission('campaign:read'), assetController.getById);
+router.put('/:id', auth, rbac.requirePermission('campaign:update'), assetController.update);
+router.delete('/:id', auth, rbac.requirePermission('campaign:delete'), assetController.delete);
 
 module.exports = router;

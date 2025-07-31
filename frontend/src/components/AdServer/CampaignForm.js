@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import apiClient from '../../api/apiClient';
 import { useAuth } from '../../contexts/AuthContext';
+import apiClient from '../../api/apiClient';
 
 const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
-  const { user } = useAuth();
+  const { user, hasPermission, isPlatformAdmin } = useAuth();
+  const [advertisers, setAdvertisers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     advertiser_id: '',
@@ -12,41 +14,16 @@ const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
     end_date: '',
     status: 'draft',
     targeting_criteria: {
-      demographics: {
-        age_min: '',
-        age_max: '',
-        gender: '',
-        interests: []
-      },
-      geo: {
-        countries: [],
-        cities: [],
-        regions: []
-      },
-      device: {
-        desktop: true,
-        mobile: true,
-        tablet: true
-      }
+      demographics: { age: '', gender: '', interests: '' },
+      geo: { countries: '', cities: '' },
+      device: { desktop: true, mobile: true, tablet: true }
     }
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [advertisers, setAdvertisers] = useState([]);
 
-  const isEditing = !!campaign;
+  const canCreateCampaign = hasPermission('campaign:create');
+  const canSelectAdvertiser = isPlatformAdmin();
 
   useEffect(() => {
-    fetchAdvertisers();
-    
-    // Set advertiser_id for non-admin users
-    if (user && user.role !== 'admin') {
-      setFormData(prev => ({
-        ...prev,
-        advertiser_id: user.id
-      }));
-    }
-    
     if (campaign) {
       setFormData({
         name: campaign.name || '',
@@ -55,39 +32,66 @@ const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
         start_date: campaign.start_date ? campaign.start_date.split('T')[0] : '',
         end_date: campaign.end_date ? campaign.end_date.split('T')[0] : '',
         status: campaign.status || 'draft',
-        targeting_criteria: campaign.targeting_criteria || {
-          demographics: { age_min: '', age_max: '', gender: '', interests: [] },
-          geo: { countries: [], cities: [], regions: [] },
-          device: { desktop: true, mobile: true, tablet: true }
-        }
+        targeting_criteria: campaign.targeting_criteria ? 
+          (typeof campaign.targeting_criteria === 'string' ? 
+            JSON.parse(campaign.targeting_criteria) : campaign.targeting_criteria) : 
+          { demographics: { age: '', gender: '', interests: '' }, geo: { countries: '', cities: '' }, device: { desktop: true, mobile: true, tablet: true } }
       });
+    } else {
+      // Set advertiser_id for non-admin users
+      if (user && !isPlatformAdmin()) {
+        setFormData(prev => ({ ...prev, advertiser_id: user.id }));
+      }
     }
-  }, [campaign]);
+  }, [campaign, user, isPlatformAdmin]);
 
-  const fetchAdvertisers = async () => {
+  useEffect(() => {
+    const fetchAdvertisers = async () => {
+      try {
+        const response = await apiClient.get('/users');
+        setAdvertisers(response.data);
+      } catch (error) {
+        console.error('Failed to fetch advertisers:', error);
+      }
+    };
+
+    if (canSelectAdvertiser) {
+      fetchAdvertisers();
+    }
+  }, [canSelectAdvertiser]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!canCreateCampaign) {
+      alert('You do not have permission to create campaigns');
+      return;
+    }
+
+    setLoading(true);
     try {
-      // Fetch existing users to use as advertisers
-      const response = await apiClient.get('/users');
-      setAdvertisers(response.data.map(user => ({
-        id: user.id,
-        name: user.email
-      })));
-    } catch (err) {
-      console.error('Failed to fetch advertisers:', err);
-      // Fallback to mock data
-      setAdvertisers([
-        { id: 1, name: 'admin@company.com' },
-        { id: 2, name: 'user@company.com' }
-      ]);
+      const campaignData = {
+        ...formData,
+        targeting_criteria: JSON.stringify(formData.targeting_criteria)
+      };
+
+      if (campaign) {
+        await apiClient.put(`/ad-server/campaigns/${campaign.id}`, campaignData);
+      } else {
+        await apiClient.post('/ad-server/campaigns', campaignData);
+      }
+
+      if (onCreated) onCreated();
+    } catch (error) {
+      console.error('Failed to save campaign:', error);
+      alert('Failed to save campaign');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleTargetingChange = (section, field, value) => {
@@ -103,260 +107,223 @@ const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    try {
-      const payload = {
-        ...formData,
-        budget: parseFloat(formData.budget),
-        targeting_criteria: JSON.stringify(formData.targeting_criteria)
-      };
-
-      if (isEditing) {
-        await apiClient.put(`/ad-server/campaigns/${campaign.id}`, payload);
-      } else {
-        await apiClient.post('/ad-server/campaigns', payload);
-      }
-
-      onCreated();
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save campaign');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+  if (!canCreateCampaign) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <p className="text-red-800">You do not have permission to create campaigns.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full max-w-2xl">
-      <h2 className="text-xl font-semibold mb-4">
-        {isEditing ? 'Edit Campaign' : 'Create New Campaign'}
-      </h2>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Campaign Name *
+        </label>
+        <input
+          type="text"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          required
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
 
-      {error && (
-        <div className="alert alert-error mb-4">
-          <span>{error}</span>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Advertiser *
+        </label>
+        {canSelectAdvertiser ? (
+          <select
+            name="advertiser_id"
+            value={formData.advertiser_id}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select Advertiser</option>
+            {advertisers.map(advertiser => (
+              <option key={advertiser.id} value={advertiser.id}>
+                {advertiser.email}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="text"
+            value={user?.email || ''}
+            disabled
+            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+          />
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Budget *
+          </label>
+          <input
+            type="number"
+            name="budget"
+            value={formData.budget}
+            onChange={handleChange}
+            required
+            min="0"
+            step="0.01"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
-      )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Status
+          </label>
+          <select
+            name="status"
+            value={formData.status}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="font-medium mb-3">Basic Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="label">
-                <span className="label-text">Campaign Name *</span>
-              </label>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Start Date *
+          </label>
+          <input
+            type="date"
+            name="start_date"
+            value={formData.start_date}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            End Date *
+          </label>
+          <input
+            type="date"
+            name="end_date"
+            value={formData.end_date}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* Targeting Criteria */}
+      <div className="border-t pt-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Targeting Criteria</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Demographics
+            </label>
+            <div className="grid grid-cols-3 gap-4">
               <input
                 type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="input input-bordered w-full"
-                required
-                placeholder="Enter campaign name"
+                placeholder="Age (e.g., 18-35)"
+                value={formData.targeting_criteria.demographics.age}
+                onChange={(e) => handleTargetingChange('demographics', 'age', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text">Advertiser *</span>
-              </label>
-              {user?.role === 'admin' ? (
-                <select
-                  name="advertiser_id"
-                  value={formData.advertiser_id}
-                  onChange={handleInputChange}
-                  className="select select-bordered w-full"
-                  required
-                >
-                  <option value="">Select advertiser</option>
-                  {advertisers.map(advertiser => (
-                    <option key={advertiser.id} value={advertiser.id}>
-                      {advertiser.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  value={user?.email || ''}
-                  className="input input-bordered w-full"
-                  disabled
-                />
-              )}
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text">Budget (₹) *</span>
-              </label>
               <input
-                type="number"
-                name="budget"
-                value={formData.budget}
-                onChange={handleInputChange}
-                className="input input-bordered w-full"
-                required
-                min="1000"
-                step="1000"
-                placeholder="50000"
+                type="text"
+                placeholder="Gender"
+                value={formData.targeting_criteria.demographics.gender}
+                onChange={(e) => handleTargetingChange('demographics', 'gender', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text">Status</span>
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleInputChange}
-                className="select select-bordered w-full"
-              >
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="paused">Paused</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text">Start Date *</span>
-              </label>
               <input
-                type="date"
-                name="start_date"
-                value={formData.start_date}
-                onChange={handleInputChange}
-                className="input input-bordered w-full"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="label">
-                <span className="label-text">End Date *</span>
-              </label>
-              <input
-                type="date"
-                name="end_date"
-                value={formData.end_date}
-                onChange={handleInputChange}
-                className="input input-bordered w-full"
-                required
+                type="text"
+                placeholder="Interests"
+                value={formData.targeting_criteria.demographics.interests}
+                onChange={(e) => handleTargetingChange('demographics', 'interests', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
-        </div>
 
-        {/* Targeting Criteria */}
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h3 className="font-medium mb-3">Targeting Criteria</h3>
-          
-          {/* Demographics */}
-          <div className="mb-4">
-            <h4 className="text-sm font-medium mb-2">Demographics</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="label">
-                  <span className="label-text">Age Min</span>
-                </label>
-                <input
-                  type="number"
-                  value={formData.targeting_criteria.demographics.age_min}
-                  onChange={(e) => handleTargetingChange('demographics', 'age_min', e.target.value)}
-                  className="input input-bordered w-full"
-                  min="18"
-                  max="65"
-                  placeholder="18"
-                />
-              </div>
-              <div>
-                <label className="label">
-                  <span className="label-text">Age Max</span>
-                </label>
-                <input
-                  type="number"
-                  value={formData.targeting_criteria.demographics.age_max}
-                  onChange={(e) => handleTargetingChange('demographics', 'age_max', e.target.value)}
-                  className="input input-bordered w-full"
-                  min="18"
-                  max="65"
-                  placeholder="65"
-                />
-              </div>
-              <div>
-                <label className="label">
-                  <span className="label-text">Gender</span>
-                </label>
-                <select
-                  value={formData.targeting_criteria.demographics.gender}
-                  onChange={(e) => handleTargetingChange('demographics', 'gender', e.target.value)}
-                  className="select select-bordered w-full"
-                >
-                  <option value="">All</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Device Targeting */}
           <div>
-            <h4 className="text-sm font-medium mb-2">Device Targeting</h4>
-            <div className="flex gap-4">
-              {Object.entries(formData.targeting_criteria.device).map(([device, enabled]) => (
-                <label key={device} className="flex items-center gap-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Geographic
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Countries (e.g., US, CA, UK)"
+                value={formData.targeting_criteria.geo.countries}
+                onChange={(e) => handleTargetingChange('geo', 'countries', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="text"
+                placeholder="Cities"
+                value={formData.targeting_criteria.geo.cities}
+                onChange={(e) => handleTargetingChange('geo', 'cities', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Device Types
+            </label>
+            <div className="flex space-x-4">
+              {Object.keys(formData.targeting_criteria.device).map(device => (
+                <label key={device} className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={enabled}
+                    checked={formData.targeting_criteria.device[device]}
                     onChange={(e) => handleTargetingChange('device', device, e.target.checked)}
-                    className="checkbox checkbox-sm"
+                    className="mr-2"
                   />
-                  <span className="text-sm capitalize">{device}</span>
+                  <span className="text-sm text-gray-700 capitalize">{device}</span>
                 </label>
               ))}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Form Actions */}
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="btn btn-outline"
-            disabled={loading}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={loading}
-          >
-            {loading ? (
-              <span className="loading loading-spinner loading-sm"></span>
-            ) : (
-              isEditing ? 'Update Campaign' : 'Create Campaign'
-            )}
-          </button>
+      <div className="flex justify-end space-x-3 pt-6 border-t">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+        >
+          {loading ? 'Saving...' : (campaign ? 'Update Campaign' : 'Create Campaign')}
+        </button>
+      </div>
+
+      {/* Permission indicator for debugging */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-400 mt-2">
+          Permissions: Create={canCreateCampaign ? 'Yes' : 'No'}, SelectAdvertiser={canSelectAdvertiser ? 'Yes' : 'No'}
         </div>
-      </form>
-    </div>
+      )}
+    </form>
   );
 };
 
