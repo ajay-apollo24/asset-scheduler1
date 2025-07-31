@@ -3198,3 +3198,5 @@ class ABTestingFramework {
 6. **Deploy and monitor** system performance
 
 This roadmap provides a comprehensive solution to the LOB competition problem while ensuring fairness, transparency, and business optimization. 
+## 📈 Ad Server Test Suite
+For stress-testing the ad server, see [docs/AD_SERVER_TEST_SUITE.md](docs/AD_SERVER_TEST_SUITE.md).

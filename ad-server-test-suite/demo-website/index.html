@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Ad Server Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    #ad-slot { border: 1px solid #ccc; width: 300px; height: 250px; display: flex; align-items: center; justify-content: center; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Ad Server Demo</h1>
+  <label>User Context (JSON):</label><br>
+  <textarea id="userCtx" rows="4" cols="50">{"ip":"127.0.0.1","user_agent":"demo"}</textarea><br>
+  <label>Page Context (JSON):</label><br>
+  <textarea id="pageCtx" rows="4" cols="50">{"page_type":"demo"}</textarea><br>
+  <button onclick="requestAd()">Request Ad</button>
+  <div id="ad-slot">Ad will appear here</div>
+
+<script>
+const API_BASE = 'http://localhost:5000/api';
+
+async function requestAd() {
+  const user_context = JSON.parse(document.getElementById('userCtx').value);
+  const page_context = JSON.parse(document.getElementById('pageCtx').value);
+  const res = await fetch(`${API_BASE}/ads/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ asset_id: 1, user_context, page_context })
+  });
+  if (res.status === 200) {
+    const data = await res.json();
+    document.getElementById('ad-slot').innerHTML = data.creative.content.html || 'Received ad';
+    // report impression
+    await fetch(`${API_BASE}/ads/impression`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ad_id: data.ad_id, creative_id: data.creative.id })
+    });
+  } else {
+    document.getElementById('ad-slot').innerText = 'No ad available';
+  }
+}
+</script>
+</body>
+</html>
