@@ -90,8 +90,8 @@ app.use(shared.errorHandler);
 // Export the app for testing
 module.exports = app;
 
-// Start server only if not in test environment
-if (process.env.NODE_ENV !== 'test') {
+// Start server if not in test environment OR if explicitly requested for testing
+if (process.env.NODE_ENV !== 'test' || process.env.START_TEST_SERVER === 'true') {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     shared.logger.info('Server started', {

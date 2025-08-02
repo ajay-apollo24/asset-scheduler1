@@ -1,5 +1,5 @@
 // add-reports-permission.js
-const db = require('./config/db');
+const db = require('../config/db');
 
 async function addReportsPermission() {
   try {
