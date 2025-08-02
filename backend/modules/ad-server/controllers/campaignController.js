@@ -1,6 +1,7 @@
 const Campaign = require('../models/Campaign');
 const AuditLog = require('../../shared/models/AuditLog');
 const logger = require('../../shared/utils/logger');
+const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
 
 const campaignController = {
   async create(req, res) {
@@ -34,6 +35,12 @@ const campaignController = {
           metadata: { advertiser_id, name }
         });
       }
+      cacheInvalidation.invalidatePatterns(
+        req,
+        ['/api/ad-server/campaigns'],
+        'campaign_create',
+        user_id
+      );
 
       logger.performance('CAMPAIGN_CREATE', Date.now() - startTime, { campaignId: campaign.id });
       logger.ad('CAMPAIGN_CREATE_SUCCESS', campaign.id, user_id);
@@ -81,6 +88,13 @@ const campaignController = {
           metadata: { updates }
         });
       }
+      cacheInvalidation.invalidatePatterns(
+        req,
+        ['/api/ad-server/campaigns'],
+        'campaign_update',
+        user_id
+      );
+
       res.json(campaign);
     } catch (err) {
       logger.logError(err, { context: 'campaign_update', campaignId: id });
@@ -106,7 +120,13 @@ const campaignController = {
           metadata: { campaignId: id }
         });
       }
-      
+      cacheInvalidation.invalidatePatterns(
+        req,
+        ['/api/ad-server/campaigns'],
+        'campaign_delete',
+        user_id
+      );
+
       res.json({ message: 'Campaign deleted successfully' });
     } catch (err) {
       logger.logError(err, { context: 'campaign_delete', campaignId: id });
@@ -134,6 +154,13 @@ const campaignController = {
           metadata: { status }
         });
       }
+      cacheInvalidation.invalidatePatterns(
+        req,
+        ['/api/ad-server/campaigns'],
+        'campaign_update_status',
+        user_id
+      );
+
       res.json(campaign);
     } catch (err) {
       logger.logError(err, { context: 'campaign_update_status', campaignId: id });
