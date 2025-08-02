@@ -7,7 +7,7 @@ This file consolidates all documentation from the repository into a single locat
 ---
 ## File: README.md
 
-# Asset Scheduler
+## Asset Scheduler
 
 **Asset Scheduler** is a full-stack application to manage the scheduling, booking, and approval workflows for internal assets—such as equipment, devices, or rooms. It offers an admin interface to oversee asset usage, prevent conflicts, and enforce approval policies.
 
@@ -43,8 +43,8 @@ This file consolidates all documentation from the repository into a single locat
 •	Drag-and-Drop Rescheduling
 •	Reports & Usage Analytics
 
-
 ---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -106,23 +106,30 @@ The ad server enhancement transforms the basic asset management system into a fu
 ## 🚀 API Endpoints
 
 ### Ad Serving (No Auth Required)
-```
+
+```js
+
 POST /api/ads/request          # Serve an ad
 POST /api/ads/impression       # Track impression
 POST /api/ads/click           # Track click
+
 ```
 
 ### Creative Management (Auth Required)
-```
+
+```js
+
 POST   /api/creatives                    # Create creative
 GET    /api/creatives                    # List creatives
 GET    /api/creatives/:id                # Get creative
 PUT    /api/creatives/:id                # Update creative
 GET    /api/creatives/:id/performance    # Get performance metrics
+
 ```
 
 ### Analytics (Auth Required)
-```
+
+```js
 GET /api/ads/analytics/realtime    # Real-time metrics
 GET /api/ads/analytics/campaigns   # Campaign performance
 ```
@@ -130,6 +137,7 @@ GET /api/ads/analytics/campaigns   # Campaign performance
 ## 📊 Database Schema
 
 ### New Tables
+
 1. **creatives** - Ad creatives for assets
 2. **campaigns** - Advertising campaigns
 3. **ad_requests** - Ad serving requests
@@ -140,6 +148,7 @@ GET /api/ads/analytics/campaigns   # Campaign performance
 ## 🔧 Implementation Status
 
 ### ✅ Completed (Placeholders)
+
 - [x] Database schema design
 - [x] Model structure with placeholder methods
 - [x] Controller structure with placeholder logic
@@ -148,6 +157,7 @@ GET /api/ads/analytics/campaigns   # Campaign performance
 - [x] Server integration
 
 ### 🚧 TODO (Implementation Required)
+
 - [ ] Database migration execution
 - [ ] Model method implementations
 - [ ] Controller logic implementations
@@ -160,18 +170,21 @@ GET /api/ads/analytics/campaigns   # Campaign performance
 ## 🎯 Next Steps
 
 ### Phase 1: Basic Ad Serving
+
 1. Run database migration
 2. Implement basic creative creation
 3. Implement basic ad serving
 4. Implement impression/click tracking
 
 ### Phase 2: Advanced Features
+
 1. Implement targeting logic ✅
 2. Implement campaign management ✅
 3. Implement analytics
 4. Implement performance optimization
 
 ### Phase 3: Production Features
+
 1. Implement fraud detection
 2. Implement A/B testing
 3. Implement real-time bidding
@@ -231,14 +244,15 @@ The ad server enhancement integrates with existing systems:
 - **Audit Logging**: Integrates with existing audit system
 - **Authentication**: Uses existing auth middleware
 - **Logging**: Extends existing logger with ad-specific methods 
----
+
 ## File: backend/AD_SERVER_ROADMAP.md
 
-# 🚀 Ad Server Development Roadmap
+## 🚀 Ad Server Development Roadmap
 
 ## Current Status: Phase 1 Complete ✅
 
 ### What's Been Implemented:
+
 - ✅ Database schema with proper indexing
 - ✅ Core models (Creative, Campaign, AdRequest, Impression)
 - ✅ Basic ad serving logic with targeting
@@ -343,6 +357,7 @@ PUT  /api/deals/pg/:id/pause          // Pause deal
 ```
 
 ### **3.3 Header Bidding Integration**
+
 ```javascript
 // Header bidding support
 POST /api/ads/header-bidding/request  // HB request
@@ -654,6 +669,7 @@ POST /api/ads/request
 ```
 
 **Request Body:**
+
 ```json
 {
   "asset_id": 123,
