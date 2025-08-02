@@ -15,7 +15,7 @@ const Analytics = {
          WHERE timestamp >= $1`,
         [fiveMinutesAgo]
       );
-      const impressionsPerMinute = Math.round(impressionsResult.rows[0].count / 5);
+      const impressionsPerMinute = Math.round((impressionsResult.rows[0]?.count || 0) / 5);
       
       // Calculate revenue per hour
       const revenueResult = await db.query(
@@ -24,7 +24,7 @@ const Analytics = {
          WHERE pm.date = CURRENT_DATE`,
         []
       );
-      const revenuePerHour = parseFloat(revenueResult.rows[0].total_revenue) / 24;
+      const revenuePerHour = parseFloat(revenueResult.rows[0]?.total_revenue || 0) / 24;
       
       // Calculate fill rate (impressions / ad requests)
       const requestsResult = await db.query(
@@ -33,8 +33,9 @@ const Analytics = {
          WHERE timestamp >= $1`,
         [fiveMinutesAgo]
       );
-      const fillRate = requestsResult.rows[0].count > 0 ? 
-        impressionsResult.rows[0].count / requestsResult.rows[0].count : 0;
+      const impressionsCount = impressionsResult.rows[0]?.count || 0;
+      const requestsCount = requestsResult.rows[0]?.count || 0;
+      const fillRate = requestsCount > 0 ? impressionsCount / requestsCount : 0;
       
       // Calculate average response time
       const responseTimeResult = await db.query(
@@ -43,7 +44,7 @@ const Analytics = {
          WHERE timestamp >= $1`,
         [fiveMinutesAgo]
       );
-      const avgResponseTime = responseTimeResult.rows[0].avg_response_time || 0;
+      const avgResponseTime = responseTimeResult.rows[0]?.avg_response_time || 0;
       
       // Get active campaigns count
       const activeCampaignsResult = await db.query(
@@ -60,8 +61,8 @@ const Analytics = {
         revenue_per_hour: revenuePerHour,
         fill_rate: fillRate,
         avg_response_time: avgResponseTime,
-        active_campaigns: parseInt(activeCampaignsResult.rows[0].count),
-        total_assets: parseInt(totalAssetsResult.rows[0].count),
+        active_campaigns: parseInt(activeCampaignsResult.rows[0]?.count || 0),
+        total_assets: parseInt(totalAssetsResult.rows[0]?.count || 0),
         timestamp: new Date().toISOString()
       };
     } catch (error) {
@@ -75,6 +76,8 @@ const Analytics = {
       let dateFilter = '';
       const params = [campaign_id];
       
+      // Validate and normalize time range
+      let normalizedTimeRange = timeRange;
       switch (timeRange) {
         case '1h':
           dateFilter = 'AND pm.date = CURRENT_DATE AND pm.created_at >= NOW() - INTERVAL \'1 hour\'';
@@ -90,6 +93,7 @@ const Analytics = {
           break;
         default:
           dateFilter = 'AND pm.date >= CURRENT_DATE - INTERVAL \'1 day\'';
+          normalizedTimeRange = '24h'; // Set default for invalid time ranges
       }
       
       const result = await db.query(
@@ -127,7 +131,7 @@ const Analytics = {
       
       return {
         ...campaign,
-        time_range: timeRange,
+        time_range: normalizedTimeRange,
         calculated_at: new Date().toISOString()
       };
     } catch (error) {
@@ -140,6 +144,8 @@ const Analytics = {
     try {
       let dateFilter = '';
       
+      // Validate and normalize time range
+      let normalizedTimeRange = timeRange;
       switch (timeRange) {
         case '1h':
           dateFilter = 'AND pm.date = CURRENT_DATE AND pm.created_at >= NOW() - INTERVAL \'1 hour\'';
@@ -155,6 +161,7 @@ const Analytics = {
           break;
         default:
           dateFilter = 'AND pm.date >= CURRENT_DATE - INTERVAL \'7 days\'';
+          normalizedTimeRange = '7d'; // Set default for invalid time ranges
       }
       
       const result = await db.query(
@@ -183,7 +190,7 @@ const Analytics = {
       
       return {
         creatives: result.rows,
-        time_range: timeRange,
+        time_range: normalizedTimeRange,
         limit: limit,
         calculated_at: new Date().toISOString()
       };
@@ -198,6 +205,8 @@ const Analytics = {
       let dateFilter = '';
       const params = [asset_id];
       
+      // Validate and normalize time range
+      let normalizedTimeRange = timeRange;
       switch (timeRange) {
         case '1h':
           dateFilter = 'AND pm.date = CURRENT_DATE AND pm.created_at >= NOW() - INTERVAL \'1 hour\'';
@@ -213,6 +222,7 @@ const Analytics = {
           break;
         default:
           dateFilter = 'AND pm.date >= CURRENT_DATE - INTERVAL \'30 days\'';
+          normalizedTimeRange = '30d'; // Set default for invalid time ranges
       }
       
       const result = await db.query(
@@ -256,7 +266,7 @@ const Analytics = {
       
       return {
         ...asset,
-        time_range: timeRange,
+        time_range: normalizedTimeRange,
         calculated_at: new Date().toISOString()
       };
     } catch (error) {

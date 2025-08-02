@@ -238,14 +238,53 @@ describe('Analytics Implementation - Simple Tests', () => {
       await expect(Analytics.getRevenueTrends('30d')).resolves.toBeDefined();
     });
 
-    it('should handle edge cases', async () => {
-      db.query.mockResolvedValue({ rows: [] });
+    it('should handle edge cases with empty database results', async () => {
+      // Mock all database queries to return empty results
+      db.query
+        .mockResolvedValue({ rows: [] }) // impressions
+        .mockResolvedValue({ rows: [] }) // revenue
+        .mockResolvedValue({ rows: [] }) // requests
+        .mockResolvedValue({ rows: [] }) // response time
+        .mockResolvedValue({ rows: [] }) // active campaigns
+        .mockResolvedValue({ rows: [] }); // total assets
 
-      // Test with zero values
       const metrics = await Analytics.getRealTimeMetrics();
+      
       expect(metrics).toHaveProperty('impressions_per_minute');
       expect(metrics).toHaveProperty('revenue_per_hour');
       expect(metrics).toHaveProperty('fill_rate');
+      expect(metrics).toHaveProperty('avg_response_time');
+      expect(metrics).toHaveProperty('active_campaigns');
+      expect(metrics).toHaveProperty('total_assets');
+      expect(metrics).toHaveProperty('timestamp');
+      
+      // Should handle zero values gracefully
+      expect(metrics.impressions_per_minute).toBe(0);
+      expect(metrics.revenue_per_hour).toBe(0);
+      expect(metrics.fill_rate).toBe(0);
+    });
+  });
+
+  describe('Production Readiness', () => {
+    it('should handle null database responses gracefully', async () => {
+      db.query.mockResolvedValue({ rows: null });
+
+      await expect(Analytics.getRealTimeMetrics()).rejects.toThrow();
+    });
+
+    it('should handle undefined database responses gracefully', async () => {
+      db.query.mockResolvedValue({ rows: undefined });
+
+      await expect(Analytics.getRealTimeMetrics()).rejects.toThrow();
+    });
+
+    it('should handle malformed database responses', async () => {
+      db.query.mockResolvedValue({ rows: [{ count: null }] });
+
+      const metrics = await Analytics.getRealTimeMetrics();
+      
+      expect(metrics).toHaveProperty('impressions_per_minute');
+      expect(metrics.impressions_per_minute).toBe(0);
     });
   });
 });

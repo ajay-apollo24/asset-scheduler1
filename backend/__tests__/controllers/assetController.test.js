@@ -2,11 +2,11 @@
 const AssetController = require('../../modules/asset-booking/controllers/assetController');
 const Asset = require('../../modules/asset-booking/models/Asset');
 const AuditLog = require('../../modules/shared/models/AuditLog');
-const TestDBHelper = require('../../tests/helpers/dbHelper');
 
 // Mock dependencies
 jest.mock('../../modules/asset-booking/models/Asset');
 jest.mock('../../modules/shared/models/AuditLog');
+jest.mock('../../modules/shared/utils/logger');
 
 describe('AssetController', () => {
   let req, res, next;
@@ -30,18 +30,20 @@ describe('AssetController', () => {
       // Arrange
       const assetData = {
         name: 'Test Asset',
-        location: 'test_location',
-        type: 'banner',
-        max_slots: 1,
-        importance: 1,
+        location: 'Test Location',
+        type: 'billboard',
+        max_slots: 5,
+        importance: 2,
         impressions_per_day: 1000,
         value_per_day: 100,
-        level: 'secondary',
+        level: 'primary',
         is_active: true
       };
 
       req.body = assetData;
       req.user = global.testUtils.generateTestUser({ user_id: 1 });
+      req.ip = '127.0.0.1';
+      req.get = jest.fn().mockReturnValue('test-user-agent');
 
       const mockAsset = {
         id: 1,
@@ -51,6 +53,10 @@ describe('AssetController', () => {
       Asset.create.mockResolvedValue(mockAsset);
       AuditLog.create.mockResolvedValue({ id: 1 });
 
+      // Mock cache invalidation
+      const cacheInvalidation = require('../../modules/shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate = jest.fn();
+
       // Act
       await AssetController.create(req, res);
 
@@ -59,21 +65,23 @@ describe('AssetController', () => {
       expect(res.json).toHaveBeenCalledWith(mockAsset);
       expect(Asset.create).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Test Asset',
-        location: 'test_location',
-        type: 'banner'
+        location: 'Test Location',
+        type: 'billboard',
+        max_slots: 5
       }));
       expect(AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
         action: 'CREATE_ASSET',
         entity_type: 'asset',
         entity_id: 1
       }));
-    }, 15000);
+    });
 
     it('should return 400 when required fields are missing', async () => {
       // Arrange
       req.body = {
-        name: 'Test Asset'
-        // Missing location, type, max_slots
+        name: 'Test Asset',
+        location: 'Test Location'
+        // Missing type and max_slots
       };
 
       // Act
@@ -84,15 +92,21 @@ describe('AssetController', () => {
       expect(res.json).toHaveBeenCalledWith({
         message: 'name, location, type, and max_slots are required'
       });
-    }, 15000);
+    });
 
     it('should handle database errors gracefully', async () => {
       // Arrange
-      req.body = global.testUtils.generateTestAsset();
+      const assetData = {
+        name: 'Test Asset',
+        location: 'Test Location',
+        type: 'billboard',
+        max_slots: 5
+      };
+
+      req.body = assetData;
       req.user = global.testUtils.generateTestUser({ user_id: 1 });
-      
-      const dbError = new Error('Database error');
-      Asset.create.mockRejectedValue(dbError);
+
+      Asset.create.mockRejectedValue(new Error('Database error'));
 
       // Act
       await AssetController.create(req, res);
@@ -102,15 +116,15 @@ describe('AssetController', () => {
       expect(res.json).toHaveBeenCalledWith({
         message: 'Failed to create asset'
       });
-    }, 15000);
+    });
   });
 
   describe('getAll', () => {
     it('should get all assets successfully', async () => {
       // Arrange
       const mockAssets = [
-        { id: 1, name: 'Asset 1', location: 'loc1' },
-        { id: 2, name: 'Asset 2', location: 'loc2' }
+        { id: 1, name: 'Asset 1', type: 'billboard' },
+        { id: 2, name: 'Asset 2', type: 'banner' }
       ];
 
       Asset.findAll.mockResolvedValue(mockAssets);
@@ -120,12 +134,12 @@ describe('AssetController', () => {
 
       // Assert
       expect(res.json).toHaveBeenCalledWith(mockAssets);
-    }, 15000);
+      expect(Asset.findAll).toHaveBeenCalled();
+    });
 
     it('should handle database errors in getAll', async () => {
       // Arrange
-      const dbError = new Error('Database error');
-      Asset.findAll.mockRejectedValue(dbError);
+      Asset.findAll.mockRejectedValue(new Error('Database error'));
 
       // Act
       await AssetController.getAll(req, res);
@@ -135,14 +149,14 @@ describe('AssetController', () => {
       expect(res.json).toHaveBeenCalledWith({
         message: 'Failed to fetch assets'
       });
-    }, 15000);
+    });
   });
 
   describe('getById', () => {
     it('should get asset by id successfully', async () => {
       // Arrange
-      const mockAsset = { id: 1, name: 'Test Asset', location: 'test_location' };
-      req.params = { id: '1' };
+      const mockAsset = { id: 1, name: 'Test Asset', type: 'billboard' };
+      req.params = { id: 1 };
 
       Asset.findById.mockResolvedValue(mockAsset);
 
@@ -151,11 +165,12 @@ describe('AssetController', () => {
 
       // Assert
       expect(res.json).toHaveBeenCalledWith(mockAsset);
-    }, 15000);
+      expect(Asset.findById).toHaveBeenCalledWith(1);
+    });
 
     it('should return 404 when asset not found', async () => {
       // Arrange
-      req.params = { id: '999' };
+      req.params = { id: 999 };
       Asset.findById.mockResolvedValue(null);
 
       // Act
@@ -166,35 +181,52 @@ describe('AssetController', () => {
       expect(res.json).toHaveBeenCalledWith({
         message: 'Asset not found'
       });
-    }, 15000);
+    });
   });
 
   describe('update', () => {
     it('should update asset successfully', async () => {
       // Arrange
-      const updateData = { name: 'Updated Asset' };
-      const mockAsset = { id: 1, ...updateData };
-      
-      req.params = { id: '1' };
+      const updateData = {
+        name: 'Updated Asset',
+        location: 'Updated Location'
+      };
+
+      const mockAsset = { id: 1, name: 'Test Asset', type: 'billboard' };
+      const mockUpdatedAsset = { id: 1, ...updateData, type: 'billboard' };
+
+      req.params = { id: 1 };
       req.body = updateData;
       req.user = global.testUtils.generateTestUser({ user_id: 1 });
+      req.ip = '127.0.0.1';
+      req.get = jest.fn().mockReturnValue('test-user-agent');
 
       Asset.findById.mockResolvedValue(mockAsset);
-      Asset.update.mockResolvedValue(mockAsset);
+      Asset.update.mockResolvedValue(mockUpdatedAsset);
       AuditLog.create.mockResolvedValue({ id: 1 });
+
+      // Mock cache invalidation
+      const cacheInvalidation = require('../../modules/shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate = jest.fn();
 
       // Act
       await AssetController.update(req, res);
 
       // Assert
-      expect(res.json).toHaveBeenCalledWith(mockAsset);
+      expect(res.json).toHaveBeenCalledWith(mockUpdatedAsset);
+      expect(Asset.update).toHaveBeenCalledWith(1, updateData);
+      expect(AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
+        action: 'UPDATE_ASSET',
+        entity_type: 'asset',
+        entity_id: 1
+      }));
     }, 15000);
 
     it('should return 404 when asset not found for update', async () => {
       // Arrange
-      req.params = { id: '999' };
+      req.params = { id: 999 };
       req.body = { name: 'Updated Asset' };
-      
+
       Asset.findById.mockResolvedValue(null);
 
       // Act
@@ -205,6 +237,6 @@ describe('AssetController', () => {
       expect(res.json).toHaveBeenCalledWith({
         message: 'Asset not found'
       });
-    }, 15000);
+    });
   });
 }); 

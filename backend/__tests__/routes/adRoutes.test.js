@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../../server');
+const app = require('../../test-server');
 const { createTestUser } = require('../helpers/testHelpers');
 
 // Mock the Analytics module

@@ -12,7 +12,7 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testTimeout: 60000, // Increased to 60 seconds for integration tests
   verbose: true,
   // Add these options for better test isolation and debugging

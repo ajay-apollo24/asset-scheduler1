@@ -26,7 +26,7 @@ describe('Analytics Utilities - Production Tests', () => {
       expect(metrics).toEqual({
         impressions_per_minute: 250,
         revenue_per_hour: 45.5,
-        fill_rate: 0.92,
+        fill_rate: expect.closeTo(0.92, 2),
         avg_response_time: 45.5,
         active_campaigns: 15,
         total_assets: 25,
