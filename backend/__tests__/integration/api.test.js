@@ -1,6 +1,5 @@
 // __tests__/integration/api.test.js
 const request = require('supertest');
-const app = require('../../server');
 
 // Mock dependencies
 jest.mock('../../modules/shared/utils/logger');
@@ -29,7 +28,7 @@ describe.skip('API Integration Tests', () => {
       };
 
       // Act
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .post('/api/assets')
         .send(assetData)
         .set('Authorization', 'Bearer valid.token')
@@ -49,7 +48,7 @@ describe.skip('API Integration Tests', () => {
       };
 
       // Act
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .post('/api/assets')
         .send(invalidAssetData)
         .set('Authorization', 'Bearer valid.token')
@@ -62,7 +61,7 @@ describe.skip('API Integration Tests', () => {
 
     it('should get all assets', async () => {
       // Act
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/assets')
         .set('Authorization', 'Bearer valid.token')
         .timeout(10000);
@@ -86,7 +85,7 @@ describe.skip('API Integration Tests', () => {
       };
 
       // Act
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .post('/api/bookings')
         .send(bookingData)
         .set('Authorization', 'Bearer valid.token')
@@ -110,14 +109,14 @@ describe.skip('API Integration Tests', () => {
       };
 
       // Create first booking
-      await request(app)
+      await request(global.testUtils.baseURL)
         .post('/api/bookings')
         .send(bookingData)
         .set('Authorization', 'Bearer valid.token')
         .timeout(10000);
 
       // Act - Try to create conflicting booking
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .post('/api/bookings')
         .send(bookingData)
         .set('Authorization', 'Bearer valid.token')
@@ -140,7 +139,7 @@ describe.skip('API Integration Tests', () => {
       };
 
       // Create booking
-      const createResponse = await request(app)
+      const createResponse = await request(global.testUtils.baseURL)
         .post('/api/bookings')
         .send(bookingData)
         .set('Authorization', 'Bearer valid.token')
@@ -149,7 +148,7 @@ describe.skip('API Integration Tests', () => {
       const bookingId = createResponse.body.id;
 
       // Act - Update dates
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .put(`/api/bookings/${bookingId}/dates`)
         .send({
           start_date: '2024-01-16',
@@ -168,7 +167,7 @@ describe.skip('API Integration Tests', () => {
   describe('Error Handling', () => {
     it('should return 404 for non-existent routes', async () => {
       // Act
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/nonexistent')
         .set('Authorization', 'Bearer valid.token')
         .timeout(10000);
@@ -180,7 +179,7 @@ describe.skip('API Integration Tests', () => {
 
     it('should return 401 for missing authentication', async () => {
       // Act
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/assets')
         .timeout(10000);
 
@@ -199,7 +198,7 @@ describe.skip('API Integration Tests', () => {
     it('should handle multiple concurrent requests', async () => {
       // Arrange
       const requests = Array(5).fill().map(() => 
-        request(app)
+        request(global.testUtils.baseURL)
           .get('/api/assets')
           .set('Authorization', 'Bearer valid.token')
           .timeout(5000)

@@ -1,5 +1,4 @@
 const request = require('supertest');
-const app = require('../../server');
 
 // Mock the Analytics module
 jest.mock('../../modules/ad-server/utils/analytics', () => ({
@@ -14,7 +13,7 @@ jest.mock('../../modules/ad-server/utils/analytics', () => ({
 
 const Analytics = require('../../modules/ad-server/utils/analytics');
 
-describe('Ad Routes Analytics Endpoints - Production Tests', () => {
+describe('Ad Routes Analytics Endpoints - Integration Tests', () => {
   const authToken = 'Bearer valid-token';
   const unauthorizedToken = 'Bearer unauthorized-token';
   const invalidToken = 'Bearer invalid-token';
@@ -25,7 +24,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
 
   describe('GET /api/ads/analytics/realtime', () => {
     it('should return real-time analytics data', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/realtime')
         .set('Authorization', authToken);
 
@@ -43,7 +42,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
     });
 
     it('should handle analytics errors gracefully', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/realtime?error=true')
         .set('Authorization', authToken);
 
@@ -52,14 +51,14 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/realtime');
 
       expect(response.status).toBe(401);
     });
 
     it('should require proper authorization', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/realtime')
         .set('Authorization', unauthorizedToken);
 
@@ -69,7 +68,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
 
   describe('GET /api/ads/analytics/campaigns', () => {
     it('should return campaign analytics with performance data', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/campaigns')
         .set('Authorization', authToken);
 
@@ -86,7 +85,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
     });
 
     it('should handle pagination parameters', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/campaigns?limit=5&offset=10')
         .set('Authorization', authToken);
 
@@ -95,7 +94,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
     });
 
     it('should calculate summary metrics correctly', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/campaigns')
         .set('Authorization', authToken);
 
@@ -109,7 +108,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
 
   describe('GET /api/ads/analytics/creatives', () => {
     it('should return creative analytics with top performers', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/creatives')
         .set('Authorization', authToken);
 
@@ -125,7 +124,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
   describe('GET /api/ads/analytics/assets/:id', () => {
     it('should return asset-specific analytics', async () => {
       const assetId = 1;
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get(`/api/ads/analytics/assets/${assetId}`)
         .set('Authorization', authToken);
 
@@ -139,7 +138,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
 
   describe('GET /api/ads/analytics/trends', () => {
     it('should return revenue trends with additional metrics', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/trends')
         .set('Authorization', authToken);
 
@@ -150,7 +149,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
     });
 
     it('should handle 90d time range with weekly grouping', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/trends?time_range=90d')
         .set('Authorization', authToken);
 
@@ -164,7 +163,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
 
   describe('GET /api/ads/analytics/geographic', () => {
     it('should return geographic performance data', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/geographic')
         .set('Authorization', authToken);
 
@@ -178,7 +177,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
 
   describe('GET /api/ads/analytics/summary', () => {
     it('should return comprehensive analytics summary', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/summary')
         .set('Authorization', authToken);
 
@@ -193,7 +192,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
 
   describe('Error Handling', () => {
     it('should handle database errors gracefully', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/campaigns?error=true')
         .set('Authorization', authToken);
 
@@ -202,7 +201,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
     });
 
     it('should handle analytics utility errors', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/realtime?error=true')
         .set('Authorization', authToken);
 
@@ -215,7 +214,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
     it('should complete analytics requests within reasonable time', async () => {
       const startTime = Date.now();
       
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/realtime')
         .set('Authorization', authToken);
 
@@ -227,7 +226,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
 
     it('should handle concurrent analytics requests', async () => {
       const requests = Array(5).fill().map(() => 
-        request(app)
+        request(global.testUtils.baseURL)
           .get('/api/ads/analytics/realtime')
           .set('Authorization', authToken)
       );
@@ -242,7 +241,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
 
   describe('Input Validation', () => {
     it('should validate time range parameters', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/trends?time_range=90d')
         .set('Authorization', authToken);
 
@@ -251,7 +250,7 @@ describe('Ad Routes Analytics Endpoints - Production Tests', () => {
     });
 
     it('should validate pagination parameters', async () => {
-      const response = await request(app)
+      const response = await request(global.testUtils.baseURL)
         .get('/api/ads/analytics/campaigns?limit=5&offset=10')
         .set('Authorization', authToken);
 

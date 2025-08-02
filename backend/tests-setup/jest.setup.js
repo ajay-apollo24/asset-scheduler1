@@ -27,38 +27,29 @@ jest.mock('../modules/shared/utils/logger', () => ({
 // jest.mock('./server', () => { ... });
 
 // Keep shared modules mocking for isolation
-jest.mock('../modules/shared/index', () => ({
-  logger: {
-    logRequest: jest.fn()
-  },
-  authRoutes: {
-    use: jest.fn()
-  },
-  userRoutes: {
-    use: jest.fn()
-  },
-  auditRoutes: {
-    use: jest.fn()
-  },
-  reportRoutes: {
-    use: jest.fn()
-  },
-  cacheRoutes: {
-    use: jest.fn()
-  },
-  logRoutes: {
-    use: jest.fn()
-  },
-  fallback: {
-    databaseFallback: jest.fn((req, res, next) => next()),
-    responseCache: jest.fn(() => (req, res, next) => next()),
-    healthCheckFallback: jest.fn((req, res, next) => next()),
-    errorRecovery: jest.fn((err, req, res, next) => next(err))
-  },
-  errorHandler: jest.fn((err, req, res, next) => {
-    res.status(500).json({ message: 'Internal Server Error' });
-  })
-}));
+jest.mock('../modules/shared/index', () => {
+  const express = require('express');
+  return {
+    logger: {
+      logRequest: jest.fn()
+    },
+    authRoutes: express.Router(),
+    userRoutes: express.Router(),
+    auditRoutes: express.Router(),
+    reportRoutes: express.Router(),
+    cacheRoutes: express.Router(),
+    logRoutes: express.Router(),
+    fallback: {
+      databaseFallback: jest.fn((req, res, next) => next()),
+      responseCache: jest.fn(() => (req, res, next) => next()),
+      healthCheckFallback: jest.fn((req, res, next) => next()),
+      errorRecovery: jest.fn((err, req, res, next) => next(err))
+    },
+    errorHandler: jest.fn((err, req, res, next) => {
+      res.status(500).json({ message: 'Internal Server Error' });
+    })
+  };
+});
 
 // Global test utilities for integration testing
 global.testUtils = {
@@ -148,13 +139,51 @@ global.testUtils = {
   }),
   
   // Helper to create test data in database
-  createTestUser: async () => {
+  createTestUser: async (overrides = {}) => {
     // This will create a real user in the test database
     const db = require('../config/db');
+    const defaultUser = {
+      email: 'test@example.com',
+      password_hash: 'hashed_password',
+      organization_id: 1,
+      ...overrides
+    };
+    
     const result = await db.query(
-      'INSERT INTO users (email, password_hash, username, role) VALUES ($1, $2, $3, $4) RETURNING *',
-      ['test@example.com', 'hashed_password', 'testuser', 'user']
+      'INSERT INTO users (email, password_hash, organization_id) VALUES ($1, $2, $3) RETURNING *',
+      [defaultUser.email, defaultUser.password_hash, defaultUser.organization_id]
     );
+    
+    // Assign default user role
+    await db.query(
+      'INSERT INTO user_roles (user_id, role_id, organization_id) VALUES ($1, $2, $3)',
+      [result.rows[0].id, 2, defaultUser.organization_id] // role_id 2 = 'user'
+    );
+    
+    return result.rows[0];
+  },
+  
+  createTestAdmin: async (overrides = {}) => {
+    // This will create a real admin user in the test database
+    const db = require('../config/db');
+    const defaultAdmin = {
+      email: 'admin@example.com',
+      password_hash: 'hashed_password',
+      organization_id: 1,
+      ...overrides
+    };
+    
+    const result = await db.query(
+      'INSERT INTO users (email, password_hash, organization_id) VALUES ($1, $2, $3) RETURNING *',
+      [defaultAdmin.email, defaultAdmin.password_hash, defaultAdmin.organization_id]
+    );
+    
+    // Assign admin role
+    await db.query(
+      'INSERT INTO user_roles (user_id, role_id, organization_id) VALUES ($1, $2, $3)',
+      [result.rows[0].id, 1, defaultAdmin.organization_id] // role_id 1 = 'admin'
+    );
+    
     return result.rows[0];
   },
   
@@ -234,8 +263,11 @@ global.testUtils = {
     await db.query('DELETE FROM creatives WHERE name LIKE \'Test%\'');
     await db.query('DELETE FROM bookings WHERE title LIKE \'Test%\'');
     await db.query('DELETE FROM assets WHERE name LIKE \'Test%\'');
+    await db.query('DELETE FROM bids WHERE bid_amount > 0');
+    await db.query('DELETE FROM approvals WHERE decided_by IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
+    await db.query('DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
+    await db.query('DELETE FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\'');
     await db.query('DELETE FROM campaigns WHERE name LIKE \'Test%\'');
-    await db.query('DELETE FROM users WHERE email LIKE \'test%@%\'');
   },
   
   // Wait for server to be ready
