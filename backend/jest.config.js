@@ -12,12 +12,12 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  setupFilesAfterEnv: ['<rootDir>/tests/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/tests-setup/jest.setup.js'],
   testTimeout: 60000, // Increased to 60 seconds for integration tests
   verbose: true,
   // Remove maxWorkers and forceExit to allow tests to run against real server
   detectOpenHandles: true, // Detect open handles that prevent Jest from exiting
   // Add global test timeout
-  globalSetup: '<rootDir>/tests/globalSetup.js',
-  globalTeardown: '<rootDir>/tests/globalTeardown.js'
+  globalSetup: '<rootDir>/tests-setup/globalSetup.js',
+  globalTeardown: '<rootDir>/tests-setup/globalTeardown.js'
 }; 

@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../../test-server');
+const app = require('../../server');
 
 // Mock the Analytics module
 jest.mock('../../modules/ad-server/utils/analytics', () => ({

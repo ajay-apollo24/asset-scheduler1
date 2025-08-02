@@ -4,7 +4,7 @@
 process.env.NODE_ENV = 'test';
 
 // Mock logger to prevent console noise during tests
-jest.mock('./modules/shared/utils/logger', () => ({
+jest.mock('../modules/shared/utils/logger', () => ({
   info: jest.fn(),
   error: jest.fn(),
   warn: jest.fn(),
@@ -27,7 +27,7 @@ jest.mock('./modules/shared/utils/logger', () => ({
 // jest.mock('./server', () => { ... });
 
 // Keep shared modules mocking for isolation
-jest.mock('./modules/shared/index', () => ({
+jest.mock('../modules/shared/index', () => ({
   logger: {
     logRequest: jest.fn()
   },
@@ -48,7 +48,16 @@ jest.mock('./modules/shared/index', () => ({
   },
   logRoutes: {
     use: jest.fn()
-  }
+  },
+  fallback: {
+    databaseFallback: jest.fn((req, res, next) => next()),
+    responseCache: jest.fn(() => (req, res, next) => next()),
+    healthCheckFallback: jest.fn((req, res, next) => next()),
+    errorRecovery: jest.fn((err, req, res, next) => next(err))
+  },
+  errorHandler: jest.fn((err, req, res, next) => {
+    res.status(500).json({ message: 'Internal Server Error' });
+  })
 }));
 
 // Global test utilities for integration testing
@@ -61,19 +70,96 @@ global.testUtils = {
     return request.set('Authorization', `Bearer ${token}`);
   },
   
+  // Mock request/response utilities for unit tests
+  mockRequest: (overrides = {}) => ({
+    body: {},
+    params: {},
+    query: {},
+    headers: {},
+    user: { id: 1, role: 'user' },
+    ...overrides
+  }),
+  
+  mockResponse: () => {
+    const res = {};
+    res.status = jest.fn().mockReturnValue(res);
+    res.json = jest.fn().mockReturnValue(res);
+    res.send = jest.fn().mockReturnValue(res);
+    res.end = jest.fn().mockReturnValue(res);
+    return res;
+  },
+  
+  mockNext: () => jest.fn(),
+  
+  // Generate test data utilities
+  generateTestUser: (overrides = {}) => ({
+    id: 1,
+    email: 'test@example.com',
+    username: 'testuser',
+    role: 'user',
+    ...overrides
+  }),
+  
+  generateTestAsset: (overrides = {}) => ({
+    id: 1,
+    name: 'Test Asset',
+    type: 'billboard',
+    location: 'Test Location',
+    level: 'secondary',
+    ...overrides
+  }),
+  
+  generateTestBooking: (overrides = {}) => ({
+    id: 1,
+    title: 'Test Booking',
+    asset_id: 1,
+    user_id: 1,
+    start_date: '2024-01-15',
+    end_date: '2024-01-20',
+    status: 'pending',
+    ...overrides
+  }),
+  
+  generateTestCreative: (overrides = {}) => ({
+    id: 1,
+    name: 'Test Creative',
+    type: 'image',
+    status: 'approved',
+    asset_id: 1,
+    campaign_id: 1,
+    ...overrides
+  }),
+  
+  generateTestCampaign: (overrides = {}) => ({
+    id: 1,
+    name: 'Test Campaign',
+    status: 'active',
+    budget: 1000.00,
+    ...overrides
+  }),
+  
+  generateTestBid: (overrides = {}) => ({
+    id: 1,
+    booking_id: 1,
+    user_id: 1,
+    amount: 100.00,
+    status: 'active',
+    ...overrides
+  }),
+  
   // Helper to create test data in database
   createTestUser: async () => {
     // This will create a real user in the test database
-    const db = require('./config/db');
+    const db = require('../config/db');
     const result = await db.query(
-      'INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) RETURNING *',
-      ['test@example.com', 'hashed_password', 'user']
+      'INSERT INTO users (email, password_hash, username, role) VALUES ($1, $2, $3, $4) RETURNING *',
+      ['test@example.com', 'hashed_password', 'testuser', 'user']
     );
     return result.rows[0];
   },
   
   createTestAsset: async (overrides = {}) => {
-    const db = require('./config/db');
+    const db = require('../config/db');
     const defaultAsset = {
       name: 'Test Asset',
       type: 'billboard',
@@ -90,7 +176,7 @@ global.testUtils = {
   },
   
   createTestBooking: async (overrides = {}) => {
-    const db = require('./config/db');
+    const db = require('../config/db');
     const defaultBooking = {
       title: 'Test Booking',
       asset_id: 1,
@@ -109,7 +195,7 @@ global.testUtils = {
   },
   
   createTestCreative: async (overrides = {}) => {
-    const db = require('./config/db');
+    const db = require('../config/db');
     const defaultCreative = {
       name: 'Test Creative',
       type: 'image',
@@ -127,7 +213,7 @@ global.testUtils = {
   },
   
   createTestCampaign: async (overrides = {}) => {
-    const db = require('./config/db');
+    const db = require('../config/db');
     const defaultCampaign = {
       name: 'Test Campaign',
       status: 'active',
@@ -144,7 +230,7 @@ global.testUtils = {
   
   // Cleanup test data
   cleanup: async () => {
-    const db = require('./config/db');
+    const db = require('../config/db');
     await db.query('DELETE FROM creatives WHERE name LIKE \'Test%\'');
     await db.query('DELETE FROM bookings WHERE title LIKE \'Test%\'');
     await db.query('DELETE FROM assets WHERE name LIKE \'Test%\'');
@@ -176,6 +262,12 @@ afterAll(async () => {
   // Clean up test data
   await global.testUtils.cleanup();
   jest.clearAllMocks();
+  
+  // Close database connections
+  const db = require('../config/db');
+  if (db.pool) {
+    await db.pool.end();
+  }
 });
 
 // Handle unhandled promise rejections in tests
