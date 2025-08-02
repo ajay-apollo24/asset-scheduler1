@@ -28,6 +28,19 @@ const Impression = {
     }
   },
 
+  async findByAdRequestId(ad_request_id) {
+    try {
+      const result = await db.query(
+        'SELECT * FROM impressions WHERE ad_request_id = $1',
+        [ad_request_id]
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Error finding impression by ad request ID:', error);
+      throw error;
+    }
+  },
+
   async getImpressionsByCreativeId(creative_id, timeRange = '24h') {
     try {
       let timeFilter = '';

@@ -44,7 +44,7 @@ describe('Bidding Controller', () => {
       const mockBooking = {
         id: 1,
         title: 'Test Booking',
-        status: 'auction_active'
+        auction_status: 'active' // Changed from status to auction_status
       };
 
       const mockBid = {
@@ -62,14 +62,22 @@ describe('Bidding Controller', () => {
 
       // Mock bidding validation
       const { validateBid } = require('../../modules/asset-booking/utils/biddingValidation');
-      validateBid.mockResolvedValue({ isValid: true, errors: [] });
+      validateBid.mockResolvedValue({ valid: true, errors: [], warnings: [] });
+
+      // Mock cache invalidation
+      const cacheInvalidation = require('../../modules/shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate = jest.fn();
+      cacheInvalidation.invalidatePatterns = jest.fn();
 
       // Act
       await BiddingController.placeBid(req, res);
 
       // Assert
       expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith(mockBid);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Bid placed successfully',
+        bid: mockBid
+      });
       expect(Bid.create).toHaveBeenCalledWith(expect.objectContaining({
         booking_id: 1,
         user_id: 1,
@@ -100,7 +108,7 @@ describe('Bidding Controller', () => {
       const mockBooking = {
         id: 1,
         title: 'Test Booking',
-        status: 'pending'
+        auction_status: 'pending' // Not active
       };
 
       Booking.findById.mockResolvedValue(mockBooking);
@@ -111,7 +119,8 @@ describe('Bidding Controller', () => {
       // Assert
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
-        message: 'Booking is not available for bidding'
+        message: 'Booking is not available for bidding',
+        auctionStatus: 'pending'
       });
     });
 
@@ -130,7 +139,7 @@ describe('Bidding Controller', () => {
       const mockBooking = {
         id: 1,
         title: 'Test Booking',
-        status: 'auction_active'
+        auction_status: 'active'
       };
 
       const existingBid = {
@@ -141,24 +150,35 @@ describe('Bidding Controller', () => {
         status: 'active'
       };
 
+      const updatedBid = {
+        ...existingBid,
+        bid_amount: 13000
+      };
+
       Booking.findById.mockResolvedValue(mockBooking);
       Bid.getActiveBids.mockResolvedValue([existingBid]);
-      Bid.updateBid.mockResolvedValue({ ...existingBid, bid_amount: 13000 });
+      Bid.updateBid.mockResolvedValue(updatedBid);
       AuditLog.create.mockResolvedValue({ id: 1 });
 
       // Mock bidding validation
       const { validateBid } = require('../../modules/asset-booking/utils/biddingValidation');
-      validateBid.mockResolvedValue({ isValid: true, errors: [] });
+      validateBid.mockResolvedValue({ valid: true, errors: [], warnings: [] });
+
+      // Mock cache invalidation
+      const cacheInvalidation = require('../../modules/shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate = jest.fn();
+      cacheInvalidation.invalidatePatterns = jest.fn();
 
       // Act
       await BiddingController.placeBid(req, res);
 
       // Assert
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        bid_amount: 13000
-      }));
-      expect(Bid.updateBid).toHaveBeenCalledWith(1, 13000);
+      expect(res.status).not.toHaveBeenCalled(); // No status call for 200
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'Bid updated successfully',
+        bid: updatedBid
+      });
+      expect(Bid.updateBid).toHaveBeenCalledWith(1, 13000, 1);
     });
   });
 
@@ -173,7 +193,7 @@ describe('Bidding Controller', () => {
         { id: 2, user_id: 2, bid_amount: 12000, status: 'active' }
       ];
 
-      Bid.getBidsForBooking.mockResolvedValue(mockBids);
+      Bid.getActiveBids.mockResolvedValue(mockBids);
       AuditLog.create.mockResolvedValue({ id: 1 });
 
       // Mock fair allocation
@@ -185,9 +205,12 @@ describe('Bidding Controller', () => {
 
       // Assert
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        bids: mockBids
+        bids: expect.arrayContaining([
+          expect.objectContaining({ id: 1, bid_amount: 10000 }),
+          expect.objectContaining({ id: 2, bid_amount: 12000 })
+        ])
       }));
-      expect(Bid.getBidsForBooking).toHaveBeenCalledWith('1');
+      expect(Bid.getActiveBids).toHaveBeenCalledWith(1);
     });
   });
 
@@ -202,21 +225,32 @@ describe('Bidding Controller', () => {
       const mockBooking = {
         id: 1,
         title: 'Test Booking',
-        status: 'pending'
+        auction_status: 'pending'
       };
 
-      Booking.findById.mockResolvedValue(mockBooking);
-      Booking.updateStatus.mockResolvedValue({ ...mockBooking, status: 'auction_active' });
+      const updatedBooking = {
+        ...mockBooking,
+        auction_status: 'active'
+      };
+
+      Booking.update.mockResolvedValue(updatedBooking);
       AuditLog.create.mockResolvedValue({ id: 1 });
+
+      // Mock cache invalidation
+      const cacheInvalidation = require('../../modules/shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate = jest.fn();
 
       // Act
       await BiddingController.startAuction(req, res);
 
       // Assert
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Auction started successfully'
+        message: 'Auction started successfully',
+        booking: updatedBooking
       }));
-      expect(Booking.updateStatus).toHaveBeenCalledWith('1', 'auction_active');
+      expect(Booking.update).toHaveBeenCalledWith(1, {
+        auction_status: 'active'
+      });
     });
   });
 
@@ -231,21 +265,24 @@ describe('Bidding Controller', () => {
       const mockBooking = {
         id: 1,
         title: 'Test Booking',
-        status: 'auction_active'
+        auction_status: 'active'
       };
 
       const mockBids = [
-        { id: 1, user_id: 1, bid_amount: 10000, status: 'active' },
-        { id: 2, user_id: 2, bid_amount: 12000, status: 'active' }
+        { id: 1, user_id: 1, bid_amount: 10000, status: 'active', lob: 'Pharmacy' },
+        { id: 2, user_id: 2, bid_amount: 12000, status: 'active', lob: 'Pharmacy' }
       ];
 
-      Booking.findById.mockResolvedValue(mockBooking);
-      Bid.getActiveBids.mockResolvedValue(mockBids);
       Booking.update.mockResolvedValue([1]);
+      Bid.getActiveBids.mockResolvedValue(mockBids);
       Bid.updateBid.mockResolvedValue([1]);
 
       const fairAllocation = require('../../modules/asset-booking/utils/fairAllocation');
       fairAllocation.resolveConflicts.mockResolvedValue([mockBids[1]]);
+
+      // Mock cache invalidation
+      const cacheInvalidation = require('../../modules/shared/utils/cacheInvalidation');
+      cacheInvalidation.smartInvalidate = jest.fn();
 
       AuditLog.create.mockResolvedValue({ id: 1 });
 
@@ -254,9 +291,16 @@ describe('Bidding Controller', () => {
 
       // Assert
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        winner: mockBids[1]
+        message: 'Auction completed successfully',
+        winner: mockBids[1],
+        totalBids: 2
       }));
-      expect(Booking.updateStatus).toHaveBeenCalledWith('1', 'booked');
+      expect(Booking.update).toHaveBeenCalledWith(1, {
+        auction_status: 'completed',
+        bid_amount: mockBids[1].bid_amount,
+        user_id: mockBids[1].user_id,
+        lob: mockBids[1].lob
+      });
     });
 
     it('should handle auction with no bids', async () => {
@@ -269,10 +313,10 @@ describe('Bidding Controller', () => {
       const mockBooking = {
         id: 1,
         title: 'Test Booking',
-        status: 'auction_active'
+        auction_status: 'active'
       };
 
-      Booking.findById.mockResolvedValue(mockBooking);
+      Booking.update.mockResolvedValue([1]);
       Bid.getActiveBids.mockResolvedValue([]);
 
       // Act
@@ -280,9 +324,12 @@ describe('Bidding Controller', () => {
 
       // Assert
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Auction cancelled - no bids received'
+        message: 'Auction cancelled - no bids received',
+        winner: null
       }));
-      expect(Booking.updateStatus).toHaveBeenCalledWith('1', 'cancelled');
+      expect(Booking.update).toHaveBeenCalledWith(1, {
+        auction_status: 'cancelled'
+      });
     });
   });
 
@@ -312,7 +359,7 @@ describe('Bidding Controller', () => {
         bid: mockBid,
         message: 'Bid cancelled successfully'
       }));
-      expect(Bid.cancelBid).toHaveBeenCalledWith('1');
+      expect(Bid.cancelBid).toHaveBeenCalledWith(1, 1);
     });
 
     it('should return 404 if bid not found', async () => {
@@ -336,7 +383,8 @@ describe('Bidding Controller', () => {
   describe('getBiddingHistory', () => {
     it('should return bidding history', async () => {
       // Arrange
-      req.params = { booking_id: 1 };
+      req.params = { lob: 'Pharmacy' };
+      req.query = { days: '30' };
       req.user = { user_id: 1, role: 'user' };
 
       const mockHistory = [
@@ -351,9 +399,11 @@ describe('Bidding Controller', () => {
 
       // Assert
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        history: mockHistory
+        lob: 'Pharmacy',
+        history: mockHistory,
+        totalBids: 2
       }));
-      expect(Bid.getBiddingHistory).toHaveBeenCalledWith('1');
+      expect(Bid.getBiddingHistory).toHaveBeenCalledWith('Pharmacy', 30);
     });
   });
 }); 

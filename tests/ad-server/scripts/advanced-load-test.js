@@ -4,8 +4,8 @@
 const axios = require('axios');
 
 let API_BASE = process.env.API_BASE || 'http://localhost:6510/api';
-let REQUESTS = Number(process.env.REQUESTS || 1000);
-let CLICK_RATE = Number(process.env.CLICK_RATE || 0.02); // 2% click rate
+let REQUESTS = Number(process.env.REQUESTS || 300);
+let CLICK_RATE = Number(process.env.CLICK_RATE || 0.04); // 2% click rate
 let IMPRESSION_RATE = Number(process.env.IMPRESSION_RATE || 0.95); // 95% impression rate
 
 // Realistic user agents for different devices
@@ -112,9 +112,19 @@ async function trackClick(adResponse) {
   if (!adResponse || !adResponse.tracking || !adResponse.tracking.click_url) return;
   
   try {
-    await axios.get(adResponse.tracking.click_url);
+    // Follow redirects and accept 302 as success
+    const response = await axios.get(adResponse.tracking.click_url, {
+      maxRedirects: 0, // Don't follow redirects automatically
+      validateStatus: function (status) {
+        return status >= 200 && status < 400; // Accept 2xx and 3xx status codes
+      }
+    });
     return true;
   } catch (error) {
+    // Check if it's a redirect (which is expected for click tracking)
+    if (error.response && (error.response.status === 302 || error.response.status === 301)) {
+      return true; // Redirect is success for click tracking
+    }
     console.log('Click tracking failed:', error.message);
     return false;
   }

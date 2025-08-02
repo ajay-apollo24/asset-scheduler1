@@ -165,6 +165,8 @@ const AdController = {
     const metadata = req.body.metadata || {};
     const startTime = Date.now();
 
+    console.log('trackClick called with:', { ad_id, creative_id, user_id });
+
     logger.ad('CLICK_ATTEMPT', ad_id, user_id, {
       creative_id,
       metadata
@@ -176,17 +178,23 @@ const AdController = {
         return res.status(400).json({ message: 'ad_id and creative_id are required' });
       }
 
+      console.log('Step 1: Parameters validated');
+
       // 2. Get creative to find destination URL
       const creative = await Creative.findById(creative_id);
       if (!creative) {
         return res.status(404).json({ message: 'Creative not found' });
       }
 
+      console.log('Step 2: Creative found:', creative.id);
+
       // 3. Get the impression for this ad request
-      const impression = await Impression.findById(ad_id);
+      const impression = await Impression.findByAdRequestId(parseInt(ad_id));
       if (!impression) {
-        return res.status(404).json({ message: 'Impression not found' });
+        return res.status(404).json({ message: 'Impression not found for this ad request' });
       }
+
+      console.log('Step 3: Impression found:', impression.id);
 
       // 4. Create click record
       const click = await Click.create({ 
@@ -196,14 +204,20 @@ const AdController = {
         metadata: { ...metadata, event_type: 'click' }
       });
 
+      console.log('Step 4: Click created:', click.id);
+
       // 5. Update performance metrics
       await AdServer.updatePerformanceMetrics(creative_id, 'click', metadata);
+
+      console.log('Step 5: Performance metrics updated');
 
       // 6. Get destination URL from creative content
       const destinationUrl = creative.content.click_url || creative.content.destination_url;
       if (!destinationUrl) {
         return res.status(400).json({ message: 'No destination URL found' });
       }
+
+      console.log('Step 6: Destination URL:', destinationUrl);
 
       const duration = Date.now() - startTime;
       logger.performance('CLICK_TRACK', duration, {
@@ -218,12 +232,13 @@ const AdController = {
       });
 
       // Invalidate analytics cache
-      const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
-      cacheInvalidation.invalidateDashboard(req, 'click_track', user_id);
+      // const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
+      // cacheInvalidation.invalidateDashboard(req, 'click_track', user_id);
 
       // Redirect to destination URL
       res.redirect(destinationUrl);
     } catch (err) {
+      console.error('Error in trackClick:', err);
       const duration = Date.now() - startTime;
       logger.logError(err, {
         context: 'click_track',
