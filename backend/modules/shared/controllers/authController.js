@@ -170,7 +170,12 @@ const authController = {
       });
 
     } catch (error) {
-      logger.error('Token verification error:', error);
+      // Log expired tokens at debug level since they're expected
+      if (error.name === 'TokenExpiredError') {
+        logger.debug('Token expired:', error.message);
+      } else {
+        logger.error('Token verification error:', error);
+      }
       res.status(401).json({ message: 'Invalid token' });
     }
   }

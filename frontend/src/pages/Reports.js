@@ -113,7 +113,7 @@ const Reports = () => {
   };
 
   const formatPercentage = (value) => {
-    return `${(value || 0).toFixed(2)}%`;
+    return `${Number(value || 0).toFixed(2)}%`;
   };
 
   const SummaryCard = ({ title, value, subtitle, icon, color = 'bg-blue-500' }) => (
