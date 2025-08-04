@@ -13,6 +13,12 @@ const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
     start_date: '',
     end_date: '',
     status: 'draft',
+    goal_type: '',
+    goal_value: '',
+    pacing: 'even',
+    pricing_model: 'cpm',
+    frequency_cap: '',
+    day_parting: '',
     targeting_criteria: {
       demographics: { age: '', gender: '', interests: '' },
       geo: { countries: '', cities: '' },
@@ -32,9 +38,19 @@ const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
         start_date: campaign.start_date ? campaign.start_date.split('T')[0] : '',
         end_date: campaign.end_date ? campaign.end_date.split('T')[0] : '',
         status: campaign.status || 'draft',
-        targeting_criteria: campaign.targeting_criteria ? 
-          (typeof campaign.targeting_criteria === 'string' ? 
-            JSON.parse(campaign.targeting_criteria) : campaign.targeting_criteria) : 
+        goal_type: campaign.goal_type || '',
+        goal_value: campaign.goal_value || '',
+        pacing: campaign.pacing || 'even',
+        pricing_model: campaign.pricing_model || 'cpm',
+        frequency_cap: campaign.frequency_cap || '',
+        day_parting: campaign.day_parting
+          ? (typeof campaign.day_parting === 'string'
+            ? campaign.day_parting
+            : JSON.stringify(campaign.day_parting))
+          : '',
+        targeting_criteria: campaign.targeting_criteria ?
+          (typeof campaign.targeting_criteria === 'string' ?
+            JSON.parse(campaign.targeting_criteria) : campaign.targeting_criteria) :
           { demographics: { age: '', gender: '', interests: '' }, geo: { countries: '', cities: '' }, device: { desktop: true, mobile: true, tablet: true } }
       });
     } else {
@@ -73,6 +89,23 @@ const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
         ...formData,
         targeting_criteria: JSON.stringify(formData.targeting_criteria)
       };
+
+      if (formData.goal_value !== '') {
+        campaignData.goal_value = parseFloat(formData.goal_value);
+      }
+      if (formData.frequency_cap !== '') {
+        campaignData.frequency_cap = parseInt(formData.frequency_cap, 10);
+      }
+      if (formData.day_parting) {
+        try {
+          campaignData.day_parting = JSON.parse(formData.day_parting);
+        } catch (err) {
+          console.error('Invalid day parting JSON:', err);
+          alert('Day parting must be valid JSON');
+          setLoading(false);
+          return;
+        }
+      }
 
       if (campaign) {
         await apiClient.put(`/ad-server/campaigns/${campaign.id}`, campaignData);
@@ -220,6 +253,105 @@ const CampaignForm = ({ onCreated, onCancel, campaign = null }) => {
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+      </div>
+
+      {/* Goal and Pricing Settings */}
+      <div className="border-t pt-6 space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Goal Type
+            </label>
+            <select
+              name="goal_type"
+              value={formData.goal_type}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select Goal</option>
+              <option value="impressions">Impressions</option>
+              <option value="clicks">Clicks</option>
+              <option value="conversions">Conversions</option>
+              <option value="spend">Spend</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Goal Value
+            </label>
+            <input
+              type="number"
+              name="goal_value"
+              value={formData.goal_value}
+              onChange={handleChange}
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Pacing
+            </label>
+            <select
+              name="pacing"
+              value={formData.pacing}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="even">Even</option>
+              <option value="asap">ASAP</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Pricing Model
+            </label>
+            <select
+              name="pricing_model"
+              value={formData.pricing_model}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="cpm">CPM</option>
+              <option value="cpc">CPC</option>
+              <option value="cpa">CPA</option>
+              <option value="flat">Flat Fee</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Frequency Cap
+            </label>
+            <input
+              type="number"
+              name="frequency_cap"
+              value={formData.frequency_cap}
+              onChange={handleChange}
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Day Parting (JSON)
+            </label>
+            <textarea
+              name="day_parting"
+              value={formData.day_parting}
+              onChange={handleChange}
+              placeholder='{"monday":["09:00-17:00"]}'
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={1}
+            />
+          </div>
         </div>
       </div>
 

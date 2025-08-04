@@ -2,28 +2,62 @@
 const db = require('../../../config/db');
 
 const Campaign = {
-  async create({ advertiser_id, name, budget, start_date, end_date, targeting_criteria = {}, status = 'draft' }) {
+  async create({
+    advertiser_id,
+    name,
+    budget,
+    start_date,
+    end_date,
+    targeting_criteria = {},
+    status = 'draft',
+    goal_type,
+    goal_value,
+    pacing = 'even',
+    pricing_model = 'cpm',
+    frequency_cap,
+    day_parting = null
+  }) {
     const result = await db.query(
-      `INSERT INTO campaigns (advertiser_id, name, budget, start_date, end_date, status, targeting_criteria)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at`,
-      [advertiser_id, name, budget, start_date, end_date, status, JSON.stringify(targeting_criteria)]
+      `INSERT INTO campaigns (advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, goal_type, goal_value, pacing, pricing_model, frequency_cap, day_parting)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       RETURNING id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, goal_type, goal_value, pacing, pricing_model, frequency_cap, day_parting, created_at, updated_at`,
+      [
+        advertiser_id,
+        name,
+        budget,
+        start_date,
+        end_date,
+        status,
+        JSON.stringify(targeting_criteria),
+        goal_type,
+        goal_value,
+        pacing,
+        pricing_model,
+        frequency_cap,
+        day_parting ? JSON.stringify(day_parting) : null
+      ]
     );
     return result.rows[0];
   },
 
   async findById(id) {
     const result = await db.query(
-      `SELECT 
-        c.id, 
-        c.advertiser_id, 
-        c.name, 
-        c.budget, 
-        c.start_date, 
-        c.end_date, 
-        c.status, 
-        c.targeting_criteria, 
-        c.created_at, 
+      `SELECT
+        c.id,
+        c.advertiser_id,
+        c.name,
+        c.budget,
+        c.start_date,
+        c.end_date,
+        c.status,
+        c.targeting_criteria,
+        c.goal_type,
+        c.goal_value,
+        c.pacing,
+        c.pricing_model,
+        c.frequency_cap,
+        c.day_parting,
+        c.created_at,
         c.updated_at,
         u.email as advertiser_name,
         COALESCE(SUM(pm.impressions), 0) as impressions,
@@ -34,7 +68,7 @@ const Campaign = {
        LEFT JOIN creatives cr ON c.id = cr.campaign_id
        LEFT JOIN performance_metrics pm ON cr.id = pm.creative_id
        WHERE c.id = $1
-       GROUP BY c.id, c.advertiser_id, c.name, c.budget, c.start_date, c.end_date, c.status, c.targeting_criteria, c.created_at, c.updated_at, u.email`,
+       GROUP BY c.id, c.advertiser_id, c.name, c.budget, c.start_date, c.end_date, c.status, c.targeting_criteria, c.goal_type, c.goal_value, c.pacing, c.pricing_model, c.frequency_cap, c.day_parting, c.created_at, c.updated_at, u.email`,
       [id]
     );
     
@@ -50,16 +84,22 @@ const Campaign = {
 
   async findByAdvertiserId(advertiser_id) {
     const result = await db.query(
-      `SELECT 
-        c.id, 
-        c.advertiser_id, 
-        c.name, 
-        c.budget, 
-        c.start_date, 
-        c.end_date, 
-        c.status, 
-        c.targeting_criteria, 
-        c.created_at, 
+      `SELECT
+        c.id,
+        c.advertiser_id,
+        c.name,
+        c.budget,
+        c.start_date,
+        c.end_date,
+        c.status,
+        c.targeting_criteria,
+        c.goal_type,
+        c.goal_value,
+        c.pacing,
+        c.pricing_model,
+        c.frequency_cap,
+        c.day_parting,
+        c.created_at,
         c.updated_at,
         COALESCE(SUM(pm.impressions), 0) as impressions,
         COALESCE(SUM(pm.clicks), 0) as clicks,
@@ -68,7 +108,7 @@ const Campaign = {
        LEFT JOIN creatives cr ON c.id = cr.campaign_id
        LEFT JOIN performance_metrics pm ON cr.id = pm.creative_id
        WHERE c.advertiser_id = $1
-       GROUP BY c.id, c.advertiser_id, c.name, c.budget, c.start_date, c.end_date, c.status, c.targeting_criteria, c.created_at, c.updated_at
+       GROUP BY c.id, c.advertiser_id, c.name, c.budget, c.start_date, c.end_date, c.status, c.targeting_criteria, c.goal_type, c.goal_value, c.pacing, c.pricing_model, c.frequency_cap, c.day_parting, c.created_at, c.updated_at
        ORDER BY c.created_at DESC`,
       [advertiser_id]
     );
@@ -82,16 +122,22 @@ const Campaign = {
 
   async findAll() {
     const result = await db.query(
-      `SELECT 
-        c.id, 
-        c.advertiser_id, 
-        c.name, 
-        c.budget, 
-        c.start_date, 
-        c.end_date, 
-        c.status, 
-        c.targeting_criteria, 
-        c.created_at, 
+      `SELECT
+        c.id,
+        c.advertiser_id,
+        c.name,
+        c.budget,
+        c.start_date,
+        c.end_date,
+        c.status,
+        c.targeting_criteria,
+        c.goal_type,
+        c.goal_value,
+        c.pacing,
+        c.pricing_model,
+        c.frequency_cap,
+        c.day_parting,
+        c.created_at,
         c.updated_at,
         u.email as advertiser_name,
         COALESCE(SUM(pm.impressions), 0) as impressions,
@@ -102,7 +148,7 @@ const Campaign = {
        LEFT JOIN users u ON c.advertiser_id = u.id
        LEFT JOIN creatives cr ON c.id = cr.campaign_id
        LEFT JOIN performance_metrics pm ON cr.id = pm.creative_id
-       GROUP BY c.id, c.advertiser_id, c.name, c.budget, c.start_date, c.end_date, c.status, c.targeting_criteria, c.created_at, c.updated_at, u.email
+       GROUP BY c.id, c.advertiser_id, c.name, c.budget, c.start_date, c.end_date, c.status, c.targeting_criteria, c.goal_type, c.goal_value, c.pacing, c.pricing_model, c.frequency_cap, c.day_parting, c.created_at, c.updated_at, u.email
        ORDER BY c.created_at DESC`
     );
     
@@ -118,21 +164,21 @@ const Campaign = {
     const values = [];
     let idx = 1;
 
-    for (const key in updates) {
-      if (key === 'targeting_criteria') {
-        fields.push(`${key} = $${idx}`);
-        values.push(JSON.stringify(updates[key]));
-      } else {
-        fields.push(`${key} = $${idx}`);
-        values.push(updates[key]);
+      for (const key in updates) {
+        if (key === 'targeting_criteria' || key === 'day_parting') {
+          fields.push(`${key} = $${idx}`);
+          values.push(JSON.stringify(updates[key]));
+        } else {
+          fields.push(`${key} = $${idx}`);
+          values.push(updates[key]);
+        }
+        idx++;
       }
-      idx++;
-    }
 
     fields.push('updated_at = CURRENT_TIMESTAMP');
     values.push(id);
 
-    const query = `UPDATE campaigns SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at`;
+    const query = `UPDATE campaigns SET ${fields.join(', ')} WHERE id = $${idx} RETURNING id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, goal_type, goal_value, pacing, pricing_model, frequency_cap, day_parting, created_at, updated_at`;
     const result = await db.query(query, values);
     return result.rows[0];
   },
@@ -174,7 +220,7 @@ const Campaign = {
 
   async getActiveCampaigns() {
     const result = await db.query(
-      'SELECT id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, created_at, updated_at FROM campaigns WHERE status = \'active\' ORDER BY start_date DESC'
+      "SELECT id, advertiser_id, name, budget, start_date, end_date, status, targeting_criteria, goal_type, goal_value, pacing, pricing_model, frequency_cap, day_parting, created_at, updated_at FROM campaigns WHERE status = 'active' ORDER BY start_date DESC"
     );
     return result.rows;
   }
