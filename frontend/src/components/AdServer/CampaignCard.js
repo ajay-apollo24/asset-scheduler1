@@ -56,10 +56,31 @@ const CampaignCard = ({ campaign, onStatusChange, formatCurrency, formatNumber }
           <span>{Math.round((campaign.spent / campaign.budget) * 100)}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
+          <div
             className="bg-blue-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${Math.min((campaign.spent / campaign.budget) * 100, 100)}%` }}
           ></div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <p className="text-sm text-gray-600">Goal</p>
+          <p className="font-semibold">
+            {campaign.goal_value ? `${campaign.goal_value} ${campaign.goal_type}` : '—'}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-600">Pacing</p>
+          <p className="font-semibold capitalize">{campaign.pacing}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-600">Pricing</p>
+          <p className="font-semibold uppercase">{campaign.pricing_model}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-600">Freq Cap</p>
+          <p className="font-semibold">{campaign.frequency_cap || '—'}</p>
         </div>
       </div>
 
@@ -81,6 +102,14 @@ const CampaignCard = ({ campaign, onStatusChange, formatCurrency, formatNumber }
           <p className="font-semibold">{formatCurrency(campaign.revenue)}</p>
         </div>
       </div>
+
+      {campaign.day_parting && (
+        <div className="text-sm text-gray-600 mb-4">
+          <p>
+            Day Parting: {typeof campaign.day_parting === 'string' ? campaign.day_parting : JSON.stringify(campaign.day_parting)}
+          </p>
+        </div>
+      )}
 
       <div className="text-sm text-gray-600 mb-4">
         <p>Start: {new Date(campaign.start_date).toLocaleDateString()}</p>

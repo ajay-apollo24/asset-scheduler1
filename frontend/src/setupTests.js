@@ -21,11 +21,15 @@ jest.mock('./api/apiClient', () => ({
 }));
 
 // Mock AuthContext
+const mockAuth = {
+  user: { id: 1, email: 'test@example.com', roles: [] },
+  hasPermission: () => true,
+  isPlatformAdmin: () => false,
+  login: jest.fn(),
+  logout: jest.fn(),
+  loading: false
+};
+
 jest.mock('./contexts/AuthContext', () => ({
-  useAuth: () => ({
-    user: { user_id: 1, email: 'test@example.com', role: 'user' },
-    login: jest.fn(),
-    logout: jest.fn(),
-    loading: false
-  })
-})); 
+  useAuth: () => mockAuth
+}));
