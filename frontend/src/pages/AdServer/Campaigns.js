@@ -1,17 +1,16 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
 import Layout from '../../components/Layout';
 import CampaignCard from '../../components/AdServer/CampaignCard';
 import CampaignStats from '../../components/AdServer/CampaignStats';
-import CampaignForm from '../../components/AdServer/CampaignForm';
-import Modal from '../../components/Modal';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Campaigns = () => {
+  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -124,7 +123,6 @@ const Campaigns = () => {
 
   const handleCreateSuccess = () => {
     fetchCampaigns();
-    setShowCreateForm(false);
   };
 
   const formatCurrency = (amount) => {
@@ -157,7 +155,7 @@ const Campaigns = () => {
           {(isAdmin() || user?.roles?.some(role => role.name === 'requestor')) && (
             <button 
               className="btn btn-primary"
-              onClick={() => setShowCreateForm(true)}
+              onClick={() => navigate('/ad-server/campaigns/create')}
             >
               Create Campaign
             </button>
@@ -193,7 +191,7 @@ const Campaigns = () => {
             <p className="text-gray-500 mb-4">Get started by creating your first campaign</p>
             <button 
               className="btn btn-primary"
-              onClick={() => setShowCreateForm(true)}
+              onClick={() => navigate('/ad-server/campaigns/create')}
             >
               Create Campaign
             </button>
@@ -213,15 +211,7 @@ const Campaigns = () => {
         )}
       </div>
 
-      {/* Create Campaign Modal */}
-      {showCreateForm && (
-        <Modal onClose={() => setShowCreateForm(false)}>
-          <CampaignForm
-            onCreated={handleCreateSuccess}
-            onCancel={() => setShowCreateForm(false)}
-          />
-        </Modal>
-      )}
+
     </Layout>
   );
 };

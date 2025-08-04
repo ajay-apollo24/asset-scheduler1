@@ -11,6 +11,7 @@ import Bidding from '../pages/Bidding';
 import Approvals from '../pages/Approvals';
 import Reports from '../pages/Reports';
 import Campaigns from '../pages/AdServer/Campaigns';
+import CreateCampaign from '../pages/AdServer/CreateCampaign';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -63,6 +64,11 @@ const AppRoutes = () => {
         <Route path="/ad-server/campaigns" element={
           <PrivateRoute>
             <Campaigns />
+          </PrivateRoute>
+        } />
+        <Route path="/ad-server/campaigns/create" element={
+          <PrivateRoute>
+            <CreateCampaign />
           </PrivateRoute>
         } />
       </Routes>
