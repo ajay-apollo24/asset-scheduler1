@@ -5,7 +5,21 @@ const cacheInvalidation = require('../../shared/utils/cacheInvalidation');
 
 const campaignController = {
   async create(req, res) {
-    const { advertiser_id, name, budget, start_date, end_date, status, targeting_criteria } = req.body;
+    const {
+      advertiser_id,
+      name,
+      budget,
+      start_date,
+      end_date,
+      status,
+      targeting_criteria,
+      goal_type,
+      goal_value,
+      pacing,
+      pricing_model,
+      frequency_cap,
+      day_parting
+    } = req.body;
     const user_id = req.user?.user_id;
     const startTime = Date.now();
 
@@ -23,7 +37,13 @@ const campaignController = {
         start_date,
         end_date,
         status: status || 'draft',
-        targeting_criteria: typeof targeting_criteria === 'string' ? targeting_criteria : JSON.stringify(targeting_criteria)
+        targeting_criteria,
+        goal_type,
+        goal_value,
+        pacing,
+        pricing_model,
+        frequency_cap,
+        day_parting
       });
 
       if (user_id) {
