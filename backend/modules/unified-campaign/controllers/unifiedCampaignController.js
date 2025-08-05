@@ -27,7 +27,13 @@ const UnifiedCampaignController = {
       goal_type,
       goal_value,
       priority_weight = 1.00,
-      bidding_strategy = 'manual'
+      bidding_strategy = 'manual',
+      pacing = 'even',
+      pricing_model = 'cpm',
+      frequency_cap = null,
+      day_parting = {},
+      creative_settings = {},
+      performance_settings = {}
     } = req.body;
 
     const user_id = req.user.user_id;
@@ -109,7 +115,13 @@ const UnifiedCampaignController = {
         goal_type,
         goal_value,
         priority_weight,
-        bidding_strategy
+        bidding_strategy,
+        pacing,
+        pricing_model,
+        frequency_cap,
+        day_parting,
+        creative_settings,
+        performance_settings
       });
 
       // Log audit
@@ -161,18 +173,15 @@ const UnifiedCampaignController = {
       if (advertiser_type) {
         campaigns = await UnifiedCampaign.findByAdvertiserType(advertiser_type, {
           status,
-          advertiser_id: user_id,
           limit: limit ? parseInt(limit) : null
         });
       } else {
         // Get both internal and external campaigns
         const internal = await UnifiedCampaign.findByAdvertiserType('internal', {
-          status,
-          advertiser_id: user_id
+          status
         });
         const external = await UnifiedCampaign.findByAdvertiserType('external', {
-          status,
-          advertiser_id: user_id
+          status
         });
         campaigns = [...internal, ...external];
       }

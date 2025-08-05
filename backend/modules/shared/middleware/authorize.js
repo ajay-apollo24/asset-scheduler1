@@ -6,7 +6,11 @@
  */
 module.exports = (...roles) => (req, res, next) => {
   if (!req.user) return res.status(401).json({ message: 'Unauthenticated' });
-  if (roles.length === 0 || roles.includes('*') || roles.includes(req.user.role)) {
+  
+  // Handle both single role and roles array
+  const userRoles = req.user.roles || [req.user.role].filter(Boolean);
+  
+  if (roles.length === 0 || roles.includes('*') || userRoles.some(role => roles.includes(role))) {
     return next();
   }
   return res.status(403).json({ message: 'Forbidden' });

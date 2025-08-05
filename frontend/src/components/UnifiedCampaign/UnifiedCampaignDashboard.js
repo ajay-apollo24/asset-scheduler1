@@ -1,11 +1,10 @@
 // src/components/UnifiedCampaign/UnifiedCampaignDashboard.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import unifiedCampaignApi from '../../api/unifiedCampaignApi';
 import Layout from '../Layout';
 
 const UnifiedCampaignDashboard = () => {
-  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,11 +19,7 @@ const UnifiedCampaignDashboard = () => {
     totalRevenue: 0
   });
 
-  useEffect(() => {
-    fetchCampaigns();
-  }, [activeTab]);
-
-  const fetchCampaigns = async () => {
+  const fetchCampaigns = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -46,6 +41,11 @@ const UnifiedCampaignDashboard = () => {
         campaignsData = response.data.campaigns;
       } else if (response.data && response.data.total !== undefined) {
         campaignsData = response.data.campaigns || [];
+      } else if (response.data && typeof response.data === 'string') {
+        // Handle error messages
+        console.warn('API returned error message:', response.data);
+        campaignsData = [];
+        setError(response.data);
       } else {
         campaignsData = [];
       }
@@ -57,22 +57,31 @@ const UnifiedCampaignDashboard = () => {
       calculateStats(campaignsData);
 
     } catch (err) {
-      setError('Failed to fetch campaigns');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch campaigns';
+      setError(errorMessage);
       console.error('Error fetching campaigns:', err);
+      setCampaigns([]); // Ensure campaigns is always an array
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
 
   const calculateStats = (campaignsData) => {
-    const total = campaignsData.length;
-    const internal = campaignsData.filter(c => c.advertiser_type === 'internal').length;
-    const external = campaignsData.filter(c => c.advertiser_type === 'external').length;
-    const active = campaignsData.filter(c => c.status === 'active' || c.status === 'approved').length;
-    const pending = campaignsData.filter(c => c.status === 'pending').length;
+    // Ensure campaignsData is an array
+    const data = Array.isArray(campaignsData) ? campaignsData : [];
     
-    const totalBudget = campaignsData.reduce((sum, c) => sum + (parseFloat(c.budget || 0)), 0);
-    const totalRevenue = campaignsData
+    const total = data.length;
+    const internal = data.filter(c => c.advertiser_type === 'internal').length;
+    const external = data.filter(c => c.advertiser_type === 'external').length;
+    const active = data.filter(c => c.status === 'active' || c.status === 'approved').length;
+    const pending = data.filter(c => c.status === 'pending').length;
+    
+    const totalBudget = data.reduce((sum, c) => sum + (parseFloat(c.budget || 0)), 0);
+    const totalRevenue = data
       .filter(c => c.advertiser_type === 'external')
       .reduce((sum, c) => sum + (parseFloat(c.budget || 0)), 0);
 
@@ -161,12 +170,20 @@ const UnifiedCampaignDashboard = () => {
         {/* Header */}
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Unified Campaign Dashboard</h1>
-          <button 
-            onClick={fetchCampaigns} 
-            className="btn btn-primary btn-sm"
-          >
-            Refresh
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => window.location.href = '/campaigns/create'} 
+              className="btn btn-primary"
+            >
+              Create Campaign
+            </button>
+            <button 
+              onClick={fetchCampaigns} 
+              className="btn btn-outline btn-sm"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -228,7 +245,7 @@ const UnifiedCampaignDashboard = () => {
         )}
 
         {/* Campaigns List */}
-        {campaigns.length === 0 ? (
+        {!Array.isArray(campaigns) || campaigns.length === 0 ? (
           <div className="text-center py-12">
             <h3 className="text-lg font-semibold text-gray-600 mb-2">No Campaigns Found</h3>
             <p className="text-gray-500">
@@ -237,6 +254,11 @@ const UnifiedCampaignDashboard = () => {
                 : `No ${activeTab} campaigns found.`
               }
             </p>
+            {!Array.isArray(campaigns) && (
+              <p className="text-red-500 mt-2">
+                Debug: campaigns is not an array. Type: {typeof campaigns}
+              </p>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">

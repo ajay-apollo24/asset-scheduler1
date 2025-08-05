@@ -28,21 +28,25 @@ const UnifiedCampaign = {
     day_parting = null,
     priority_weight = 1.00, // for internal campaigns
     bidding_strategy = 'manual', // 'manual', 'rtb', 'auto'
-    auction_status = 'none'
+    auction_status = 'none',
+    creative_settings = {},
+    performance_settings = {}
   }) {
     const result = await db.query(
       `INSERT INTO campaigns (
         advertiser_id, advertiser_type, name, title, asset_id, budget, 
         start_date, end_date, status, lob, purpose, creative_url,
         targeting_criteria, goal_type, goal_value, pacing, pricing_model,
-        frequency_cap, day_parting, priority_weight, bidding_strategy, auction_status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+        frequency_cap, day_parting, priority_weight, bidding_strategy, auction_status,
+        creative_settings, performance_settings
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
       RETURNING *`,
       [
         advertiser_id, advertiser_type, name, title, asset_id, budget,
         start_date, end_date, status, lob, purpose, creative_url,
         JSON.stringify(targeting_criteria), goal_type, goal_value, pacing, pricing_model,
-        frequency_cap, day_parting ? JSON.stringify(day_parting) : null, priority_weight, bidding_strategy, auction_status
+        frequency_cap, day_parting ? JSON.stringify(day_parting) : null, priority_weight, bidding_strategy, auction_status,
+        JSON.stringify(creative_settings), JSON.stringify(performance_settings)
       ]
     );
 

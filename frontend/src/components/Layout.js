@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Layout = ({ children }) => {
-  const { user, logout, hasPermission, hasRole, isPlatformAdmin, canManageCampaigns, canViewAnalytics } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const location = useLocation();
 
   const isActive = (path) => location.pathname === path;
@@ -12,11 +12,8 @@ const Layout = ({ children }) => {
   const navItems = [
     { path: '/', label: 'Dashboard', permission: 'analytics:read' },
     { path: '/assets', label: 'Assets', permission: 'campaign:read' },
-    { path: '/campaigns', label: 'Unified Campaigns', permission: 'campaign:read' },
-    { path: '/bookings', label: 'Bookings', permission: 'campaign:read' },
-    { path: '/bidding', label: 'Bidding', permission: 'campaign:read' },
+    { path: '/campaigns', label: 'Campaigns', permission: 'campaign:read' },
     { path: '/approvals', label: 'Approvals', permission: 'campaign:read' },
-    { path: '/ad-server/campaigns', label: 'Ad Server', permission: 'campaign:read' },
     { path: '/reports', label: 'Reports', permission: 'analytics:read' },
   ].filter(item => !item.permission || hasPermission(item.permission));
 

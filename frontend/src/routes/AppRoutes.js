@@ -6,12 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import Assets from '../pages/Assets';
-import Bookings from '../pages/Bookings';
-import Bidding from '../pages/Bidding';
 import Approvals from '../pages/Approvals';
 import Reports from '../pages/Reports';
-import Campaigns from '../pages/AdServer/Campaigns';
-import CreateCampaign from '../pages/AdServer/CreateCampaign';
 import UnifiedCampaigns from '../pages/UnifiedCampaign/Campaigns';
 import CreateUnifiedCampaign from '../pages/UnifiedCampaign/CreateCampaign';
 
@@ -43,16 +39,6 @@ const AppRoutes = () => {
             <Assets />
           </PrivateRoute>
         } />
-        <Route path="/bookings" element={
-          <PrivateRoute>
-            <Bookings />
-          </PrivateRoute>
-        } />
-        <Route path="/bidding" element={
-          <PrivateRoute>
-            <Bidding />
-          </PrivateRoute>
-        } />
         <Route path="/approvals" element={
           <PrivateRoute>
             <Approvals />
@@ -61,16 +47,6 @@ const AppRoutes = () => {
         <Route path="/reports" element={
           <PrivateRoute>
             <Reports />
-          </PrivateRoute>
-        } />
-        <Route path="/ad-server/campaigns" element={
-          <PrivateRoute>
-            <Campaigns />
-          </PrivateRoute>
-        } />
-        <Route path="/ad-server/campaigns/create" element={
-          <PrivateRoute>
-            <CreateCampaign />
           </PrivateRoute>
         } />
         <Route path="/campaigns" element={

@@ -9,10 +9,10 @@ const Dashboard = () => {
   const { hasPermission } = useAuth();
   const [stats, setStats] = useState({
     totalAssets: 0,
-    totalBookings: 0,
-    activeAuctions: 0,
-    pendingApprovals: 0,
-    totalCampaigns: 0
+    totalCampaigns: 0,
+    internalCampaigns: 0,
+    externalCampaigns: 0,
+    pendingApprovals: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -29,9 +29,21 @@ const Dashboard = () => {
       // Only fetch data for endpoints the user has permission to access
       if (hasPermission('campaign:read')) {
         promises.push(
-          apiClient.get('/assets').then(res => { newStats.totalAssets = res.data.length; }).catch(() => {}),
-          apiClient.get('/bookings').then(res => { newStats.totalBookings = res.data.length; }).catch(() => {}),
-          apiClient.get('/ad-server/campaigns').then(res => { newStats.totalCampaigns = res.data.length; }).catch(() => {})
+          apiClient.get('/assets').then(res => { 
+            newStats.totalAssets = res.data.length; 
+          }).catch((err) => {
+            console.error('Error fetching assets:', err);
+          }),
+          apiClient.get('/campaigns').then(res => { 
+            // Handle the unified campaign API response format
+            const campaigns = res.data && res.data.campaigns ? res.data.campaigns : 
+                             Array.isArray(res.data) ? res.data : [];
+            newStats.totalCampaigns = campaigns.length;
+            newStats.internalCampaigns = campaigns.filter(c => c.advertiser_type === 'internal').length;
+            newStats.externalCampaigns = campaigns.filter(c => c.advertiser_type === 'external').length;
+          }).catch((err) => {
+            console.error('Error fetching campaigns:', err);
+          })
         );
       }
 
@@ -66,18 +78,26 @@ const Dashboard = () => {
               </div>
               
               <div className="bg-white p-6 rounded-lg shadow-md">
-                <div className="text-sm font-medium text-gray-600">Total Bookings</div>
-                <div className="text-2xl font-bold text-green-600">{stats.totalBookings}</div>
+                <div className="text-sm font-medium text-gray-600">Total Campaigns</div>
+                <div className="text-2xl font-bold text-purple-600">{stats.totalCampaigns}</div>
                 <div className="mt-2">
-                  <Link to="/bookings" className="text-green-600 hover:text-green-800 text-sm">View Bookings →</Link>
+                  <Link to="/campaigns" className="text-purple-600 hover:text-purple-800 text-sm">View Campaigns →</Link>
                 </div>
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow-md">
-                <div className="text-sm font-medium text-gray-600">Total Campaigns</div>
-                <div className="text-2xl font-bold text-purple-600">{stats.totalCampaigns}</div>
+                <div className="text-sm font-medium text-gray-600">Internal Campaigns</div>
+                <div className="text-2xl font-bold text-green-600">{stats.internalCampaigns}</div>
                 <div className="mt-2">
-                  <Link to="/ad-server/campaigns" className="text-purple-600 hover:text-purple-800 text-sm">View Campaigns →</Link>
+                  <Link to="/campaigns" className="text-green-600 hover:text-green-800 text-sm">View Internal →</Link>
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className="text-sm font-medium text-gray-600">External Campaigns</div>
+                <div className="text-2xl font-bold text-blue-600">{stats.externalCampaigns}</div>
+                <div className="mt-2">
+                  <Link to="/campaigns" className="text-blue-600 hover:text-blue-800 text-sm">View External →</Link>
                 </div>
               </div>
             </>
@@ -97,9 +117,9 @@ const Dashboard = () => {
         <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {hasPermission('campaign:create') && (
-            <Link to="/ad-server/campaigns" className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 transition-colors">
+            <Link to="/campaigns/create" className="bg-blue-600 text-white p-4 rounded-lg hover:bg-blue-700 transition-colors">
               <div className="font-semibold">Create Campaign</div>
-              <div className="text-sm opacity-90">Start a new advertising campaign</div>
+              <div className="text-sm opacity-90">Start a new unified campaign</div>
             </Link>
           )}
           
@@ -110,9 +130,9 @@ const Dashboard = () => {
                 <div className="text-sm opacity-90">Manage advertising assets</div>
               </Link>
               
-              <Link to="/bookings" className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors">
-                <div className="font-semibold">View Bookings</div>
-                <div className="text-sm opacity-90">Check campaign bookings</div>
+              <Link to="/campaigns" className="bg-purple-600 text-white p-4 rounded-lg hover:bg-purple-700 transition-colors">
+                <div className="font-semibold">View Campaigns</div>
+                <div className="text-sm opacity-90">Manage all campaigns</div>
               </Link>
             </>
           )}
@@ -122,7 +142,7 @@ const Dashboard = () => {
       {hasPermission('analytics:read') && (
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-4">Calendar View</h2>
-          <p className="mb-4 text-gray-600">Use the calendar below to view and manage campaign bookings.</p>
+          <p className="mb-4 text-gray-600">Use the calendar below to view and manage all campaigns and asset allocations.</p>
           <CalendarView />
         </div>
       )}
