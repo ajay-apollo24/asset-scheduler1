@@ -21,6 +21,9 @@ router.get('/availability/asset', authorize(['campaign', 'read']), UnifiedCampai
 // Bidding routes
 router.post('/bid', authorize(['campaign', 'update']), UnifiedCampaignController.processBid);
 
+// Asset allocation routes
+router.post('/allocate', authorize(['campaign', 'update']), UnifiedCampaignController.allocateAsset);
+
 // Analytics routes
 router.get('/analytics/summary', authorize(['campaign', 'read']), UnifiedCampaignController.getAnalytics);
 

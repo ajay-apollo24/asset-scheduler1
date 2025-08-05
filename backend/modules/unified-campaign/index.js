@@ -10,6 +10,9 @@ const UnifiedCampaign = require('./models/UnifiedCampaign');
 // Routes
 const unifiedCampaignRoutes = require('./routes/unifiedCampaignRoutes');
 
+// Utils
+const UnifiedBiddingEngine = require('./utils/unifiedBiddingEngine');
+
 module.exports = {
   // Controllers
   UnifiedCampaignController,
@@ -18,5 +21,8 @@ module.exports = {
   UnifiedCampaign,
   
   // Routes
-  unifiedCampaignRoutes
+  unifiedCampaignRoutes,
+  
+  // Utils
+  UnifiedBiddingEngine
 }; 

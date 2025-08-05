@@ -11,6 +11,7 @@ dotenv.config();
 const shared = require('./modules/shared');
 const assetBooking = require('./modules/asset-booking');
 const adServer = require('./modules/ad-server');
+const unifiedCampaign = require('./modules/unified-campaign');
 const { applyRateLimit } = require('./modules/shared/middleware/rateLimit');
 
 const app = express();
@@ -59,6 +60,9 @@ app.use('/api/ads', adServer.adRoutes);
 app.use('/api/ads/rtb', adServer.rtbRoutes);
 app.use('/api/creatives', adServer.creativeRoutes);
 app.use('/api/ad-server/campaigns', adServer.campaignRoutes);
+
+// Route mounting - Unified Campaign Routes
+app.use('/api/campaigns', unifiedCampaign.unifiedCampaignRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

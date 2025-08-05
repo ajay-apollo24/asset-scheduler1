@@ -5,6 +5,7 @@ const AuditLog = require('../../shared/models/AuditLog');
 const logger = require('../../shared/utils/logger');
 const { validateBookingRules } = require('../../asset-booking/utils/ruleEngine');
 const biddingValidation = require('../../asset-booking/utils/biddingValidation');
+const UnifiedBiddingEngine = require('../utils/unifiedBiddingEngine');
 
 const UnifiedCampaignController = {
   /**
@@ -334,7 +335,7 @@ const UnifiedCampaignController = {
    * Process a bid
    */
   async processBid(req, res) {
-    const { campaign_id, asset_id, bid_amount, bid_type = 'manual' } = req.body;
+    const { campaign_id, asset_id, bid_amount, bid_type = 'manual', context = {} } = req.body;
     const user_id = req.user.user_id;
 
     try {
@@ -349,26 +350,22 @@ const UnifiedCampaignController = {
         return res.status(403).json({ message: 'Not authorized to bid on this campaign' });
       }
 
-      // Validate bid based on advertiser type
-      if (campaign.advertiser_type === 'internal') {
-        const asset = await Asset.findById(asset_id);
-        const validation = await biddingValidation.validateBid({
-          booking_id: campaign_id,
-          bid_amount,
-          user_id,
-          lob: campaign.lob
-        }, asset);
+      // Use unified bidding engine
+      const result = await UnifiedBiddingEngine.processBid(
+        campaign_id, 
+        asset_id, 
+        bid_amount, 
+        bid_type, 
+        context
+      );
 
-        if (!validation.valid) {
-          return res.status(400).json({ 
-            message: 'Bid validation failed', 
-            errors: validation.errors,
-            warnings: validation.warnings
-          });
-        }
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: 'Bid processing failed', 
+          errors: result.errors,
+          warnings: result.warnings
+        });
       }
-
-      const result = await UnifiedCampaign.processBid(campaign_id, asset_id, bid_amount, bid_type);
 
       res.json({
         message: 'Bid processed successfully',
@@ -401,6 +398,36 @@ const UnifiedCampaignController = {
     } catch (error) {
       logger.error('Failed to get analytics', { error: error.message });
       res.status(500).json({ message: 'Failed to get analytics' });
+    }
+  },
+
+  /**
+   * Allocate asset slots
+   */
+  async allocateAsset(req, res) {
+    const { asset_id, start_date, end_date } = req.body;
+
+    if (!asset_id || !start_date || !end_date) {
+      return res.status(400).json({ 
+        message: 'asset_id, start_date, and end_date are required' 
+      });
+    }
+
+    try {
+      const allocation = await UnifiedBiddingEngine.allocateAsset(
+        parseInt(asset_id), 
+        start_date, 
+        end_date
+      );
+
+      res.json({
+        message: 'Asset allocation completed',
+        allocation
+      });
+
+    } catch (error) {
+      logger.error('Failed to allocate asset', { error: error.message });
+      res.status(500).json({ message: 'Failed to allocate asset' });
     }
   }
 };
