@@ -1,0 +1,298 @@
+{
+  "_comment": "Enhanced Fairness Configuration - This file configures the sophisticated fairness system",
+  "_description": "This system prevents monetization from always outbidding internal teams by normalizing different ROI metrics and implementing strict slot reservation and bid caps.",
+  
+  "strategicWeights": {
+    "_comment": "Strategic weights for different LOBs - higher weights get priority in allocation",
+    "_description": "These weights are applied after ROI normalization to ensure fair competition between different business units",
+    "Monetization": 1.2,
+    "_comment_monetization": "Revenue generation - capped to prevent domination by monetization teams",
+    "Pharmacy": 1.4,
+    "_comment_pharmacy": "Core business - high strategic value for healthcare operations",
+    "Diagnostics": 1.3,
+    "_comment_diagnostics": "Healthcare services - critical for patient care and revenue",
+    "Insurance": 1.2,
+    "_comment_insurance": "Financial services - moderate priority for business growth",
+    "Consult": 1.1,
+    "_comment_consult": "Standard weight for consultation services",
+    "Credit Card": 1.1,
+    "_comment_credit_card": "Standard weight for financial products",
+    "Ask Apollo Circle": 1.0,
+    "_comment_ask_apollo": "Lower priority for community engagement",
+    "AI Bot": 1.3,
+    "_comment_ai_bot": "Engagement-focused - high strategic value for user interaction",
+    "Lab Test": 1.4
+    "_comment_lab_test": "Conversion-focused - critical for revenue generation"
+  },
+
+  "roiMetrics": {
+    "_comment": "ROI metrics configuration for different campaign types",
+    "_description": "This normalizes different success metrics (engagement, conversions, revenue) to enable fair comparison",
+    
+    "Monetization": {
+      "_comment": "Direct revenue generation campaigns",
+      "type": "immediate_revenue",
+      "_comment_type": "Direct revenue generation with no conversion window",
+      "conversionWindow": 0,
+      "_comment_conversion_window": "Same day conversion - immediate revenue impact",
+      "weight": 1.0,
+      "_comment_weight": "Base weight for revenue campaigns",
+      "maxBidMultiplier": 1.2,
+      "_comment_max_bid": "Strict cap on monetization bids to prevent domination",
+      "targetMetric": "revenue_per_day",
+      "_comment_target": "Primary metric to track",
+      "normalizationFactor": 1.0,
+      "_comment_normalization": "No normalization needed for revenue (base unit)"
+    },
+    
+    "AI Bot": {
+      "_comment": "User engagement and interaction campaigns",
+      "type": "engagement",
+      "_comment_type": "User engagement and interaction metrics",
+      "conversionWindow": 30,
+      "_comment_conversion_window": "30-day engagement window to measure impact",
+      "weight": 0.8,
+      "_comment_weight": "Slightly lower weight than revenue but still important",
+      "maxBidMultiplier": 2.0,
+      "_comment_max_bid": "Higher bid allowance for engagement campaigns",
+      "targetMetric": "user_interactions",
+      "_comment_target": "Primary metric to track",
+      "normalizationFactor": 0.1,
+      "_comment_normalization": "10 interactions = 1 revenue unit for fair comparison",
+      "engagementTarget": 1000,
+      "_comment_engagement_target": "Target number of engagements for success"
+    },
+    
+    "Lab Test": {
+      "_comment": "Booking conversion campaigns",
+      "type": "conversion",
+      "_comment_type": "Booking conversions and test appointments",
+      "conversionWindow": 30,
+      "_comment_conversion_window": "30-day conversion window to measure bookings",
+      "weight": 0.9,
+      "_comment_weight": "High weight for conversions as they drive revenue",
+      "maxBidMultiplier": 1.8,
+      "_comment_max_bid": "Good bid allowance for conversion campaigns",
+      "targetMetric": "bookings",
+      "_comment_target": "Primary metric to track",
+      "normalizationFactor": 0.05,
+      "_comment_normalization": "20 bookings = 1 revenue unit for fair comparison",
+      "conversionTarget": 50,
+      "_comment_conversion_target": "Target number of conversions for success"
+    },
+    
+    "Pharmacy": {
+      "_comment": "Revenue generation with conversion window",
+      "type": "revenue",
+      "_comment_type": "Revenue generation with delayed conversion",
+      "conversionWindow": 7,
+      "_comment_conversion_window": "7-day conversion window for pharmacy sales",
+      "weight": 0.85,
+      "_comment_weight": "High weight for core business revenue",
+      "maxBidMultiplier": 1.6,
+      "_comment_max_bid": "Good bid allowance for pharmacy campaigns",
+      "targetMetric": "revenue_per_day",
+      "_comment_target": "Primary metric to track",
+      "normalizationFactor": 0.8,
+      "_comment_normalization": "80% of monetization value for fair comparison",
+      "revenueTarget": 5000,
+      "_comment_revenue_target": "Target revenue per day for success"
+    },
+    
+    "Diagnostics": {
+      "_comment": "Test booking conversion campaigns",
+      "type": "conversion",
+      "_comment_type": "Test booking conversions and diagnostic appointments",
+      "conversionWindow": 14,
+      "_comment_conversion_window": "14-day conversion window for test bookings",
+      "weight": 0.9,
+      "_comment_weight": "High weight for healthcare conversions",
+      "maxBidMultiplier": 1.7,
+      "_comment_max_bid": "Good bid allowance for diagnostic campaigns",
+      "targetMetric": "test_bookings",
+      "_comment_target": "Primary metric to track",
+      "normalizationFactor": 0.03,
+      "_comment_normalization": "33 test bookings = 1 revenue unit for fair comparison",
+      "conversionTarget": 30,
+      "_comment_conversion_target": "Target number of test bookings for success"
+    }
+  },
+
+  "slotAllocation": {
+    "_comment": "Slot allocation rules - ensures internal teams get guaranteed access",
+    "_description": "This prevents external/monetization from dominating all slots by reserving specific percentages",
+    
+    "primary": {
+      "_comment": "Primary assets (highest value, most visible)",
+      "internal": 0.6,
+      "_comment_internal": "60% reserved for internal teams - guaranteed access",
+      "external": 0.4,
+      "_comment_external": "40% for external/monetization campaigns",
+      "monetization": 0.2,
+      "_comment_monetization": "Max 20% for monetization (subset of external) - strict cap"
+    },
+    
+    "secondary": {
+      "_comment": "Secondary assets (moderate value, good visibility)",
+      "internal": 0.7,
+      "_comment_internal": "70% for internal teams - higher guarantee than primary",
+      "external": 0.3,
+      "_comment_external": "30% for external campaigns",
+      "monetization": 0.15,
+      "_comment_monetization": "Max 15% for monetization - even stricter cap"
+    },
+    
+    "tertiary": {
+      "_comment": "Tertiary assets (lower value, limited visibility)",
+      "internal": 0.8,
+      "_comment_internal": "80% for internal teams - highest guarantee",
+      "external": 0.2,
+      "_comment_external": "20% for external campaigns",
+      "monetization": 0.1,
+      "_comment_monetization": "Max 10% for monetization - very strict cap"
+    }
+  },
+
+  "fairnessFactors": {
+    "_comment": "Fairness factors for time-based and historical considerations",
+    "_description": "These factors ensure fair distribution over time and prevent over-booking",
+    
+    "lastBookingDays": 30,
+    "_comment_last_booking": "Consider bookings in last 30 days for fairness calculation",
+    
+    "timeDecayFactor": 0.1,
+    "_comment_time_decay": "10% decay per day of no booking - encourages fair rotation",
+    
+    "strategicBonus": 0.3,
+    "_comment_strategic_bonus": "Strategic LOBs get 30% bonus in allocation",
+    
+    "revenueFloor": 1.5,
+    "_comment_revenue_floor": "Monetization must generate 1.5x revenue to maintain priority",
+    
+    "timeRestriction": {
+      "_comment": "Time-based restrictions for different campaign types",
+      "monetization": "business_hours",
+      "_comment_monetization_time": "Monetization only during business hours (9 AM - 6 PM)",
+      "internal": "any_time",
+      "_comment_internal_time": "Internal teams can book anytime - no restrictions"
+    }
+  },
+
+  "biddingRules": {
+    "_comment": "Bidding rules for different campaign types",
+    "_description": "These rules control how much different campaign types can bid",
+    
+    "internal": {
+      "_comment": "Rules for internal team campaigns",
+      "maxBidMultiplier": 2.0,
+      "_comment_max_bid": "Internal teams can bid up to 2x base amount",
+      "fairnessBonus": 0.3,
+      "_comment_fairness_bonus": "30% fairness bonus for internal campaigns",
+      "timeDecayBonus": 0.2,
+      "_comment_time_decay_bonus": "20% bonus for time-based fairness",
+      "strategicBonus": 0.4,
+      "_comment_strategic_bonus": "40% bonus for strategic LOBs",
+      "slotGuarantee": true,
+      "_comment_slot_guarantee": "Guaranteed slot access for internal teams"
+    },
+    
+    "external": {
+      "_comment": "Rules for external advertiser campaigns",
+      "maxBidMultiplier": 1.5,
+      "_comment_max_bid": "External limited to 1.5x base amount",
+      "revenueRequirement": 0.8,
+      "_comment_revenue_requirement": "Must show 80% revenue efficiency",
+      "performancePenalty": 0.2,
+      "_comment_performance_penalty": "20% penalty for poor performance",
+      "slotGuarantee": false,
+      "_comment_slot_guarantee": "No guaranteed slots for external campaigns"
+    },
+    
+    "monetization": {
+      "_comment": "Rules for monetization campaigns",
+      "maxBidMultiplier": 1.2,
+      "_comment_max_bid": "Strict cap on monetization bids - prevents domination",
+      "slotLimit": 0.2,
+      "_comment_slot_limit": "Max 20% of total slots for monetization",
+      "revenueFloor": 1.5,
+      "_comment_revenue_floor": "Must generate 1.5x revenue to maintain priority",
+      "timeRestriction": "business_hours",
+      "_comment_time_restriction": "Only during business hours",
+      "slotGuarantee": false,
+      "_comment_slot_guarantee": "No guaranteed slots for monetization"
+    }
+  },
+
+  "performanceTracking": {
+    "_comment": "Performance tracking configuration for ROI calculation",
+    "_description": "Settings for tracking and calculating ROI metrics",
+    
+    "trackingWindow": 30,
+    "_comment_tracking_window": "Days to track performance metrics",
+    
+    "engagementMetrics": {
+      "_comment": "Metrics for engagement-based campaigns",
+      "userInteractions": true,
+      "_comment_user_interactions": "Track user interactions and clicks",
+      "timeSpent": true,
+      "_comment_time_spent": "Track time spent on engagement",
+      "uniqueUsers": true,
+      "_comment_unique_users": "Track unique users engaged"
+    },
+    
+    "conversionMetrics": {
+      "_comment": "Metrics for conversion-based campaigns",
+      "bookings": true,
+      "_comment_bookings": "Track booking conversions",
+      "conversionRate": true,
+      "_comment_conversion_rate": "Track conversion rates",
+      "conversionValue": true,
+      "_comment_conversion_value": "Track value of conversions"
+    },
+    
+    "revenueMetrics": {
+      "_comment": "Metrics for revenue-based campaigns",
+      "dailyRevenue": true,
+      "_comment_daily_revenue": "Track daily revenue generation",
+      "revenueEfficiency": true,
+      "_comment_revenue_efficiency": "Track revenue efficiency vs targets",
+      "costPerAcquisition": true,
+      "_comment_cpa": "Track cost per acquisition"
+    }
+  },
+
+  "monitoring": {
+    "_comment": "Monitoring and alerting configuration",
+    "_description": "Settings for monitoring fairness and performance",
+    
+    "fairnessThresholds": {
+      "_comment": "Thresholds for fairness monitoring",
+      "minInternalAllocation": 0.5,
+      "_comment_min_internal": "Minimum 50% allocation for internal teams",
+      "maxMonetizationAllocation": 0.25,
+      "_comment_max_monetization": "Maximum 25% allocation for monetization",
+      "fairnessScoreThreshold": 0.7,
+      "_comment_fairness_threshold": "Minimum fairness score threshold"
+    },
+    
+    "alerts": {
+      "_comment": "Alert configuration for fairness violations",
+      "enableAlerts": true,
+      "_comment_enable_alerts": "Enable fairness violation alerts",
+      "alertChannels": ["email", "slack", "dashboard"],
+      "_comment_alert_channels": "Channels to send alerts",
+      "alertThreshold": 0.8,
+      "_comment_alert_threshold": "Alert when fairness score drops below 80%"
+    },
+    
+    "reporting": {
+      "_comment": "Reporting configuration",
+      "dailyReports": true,
+      "_comment_daily_reports": "Generate daily fairness reports",
+      "weeklyAnalysis": true,
+      "_comment_weekly_analysis": "Generate weekly fairness analysis",
+      "monthlyTrends": true,
+      "_comment_monthly_trends": "Generate monthly fairness trends"
+    }
+  }
+} 
