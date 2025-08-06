@@ -53,11 +53,32 @@ This file consolidates all documentation from the repository into a single locat
 - PostgreSQL (or compatible RDBMS)
 - Docker (optional)
 
-### 1. Clone the repo
+### 🎯 Quick Setup (Recommended for New Developers)
+
+**For new developers, simply run:**
 
 ```bash
 git clone https://github.com/ajay-apollo24/asset-scheduler1.git
 cd asset-scheduler1
+
+# Run the simple setup script
+./scripts/simple-setup.sh
+```
+
+This will automatically:
+- ✅ Create database and user
+- ✅ Install dependencies  
+- ✅ Set up all tables and sample data
+- ✅ Configure environment files
+- ✅ Verify everything works
+
+**See [QUICK_START.md](QUICK_START.md) for detailed instructions.**
+
+**Want to use a custom database name? See [CUSTOM_DATABASE_SETUP.md](CUSTOM_DATABASE_SETUP.md)**
+
+### Manual Setup (Advanced Users)
+
+If you prefer manual setup:
 
 ---
 

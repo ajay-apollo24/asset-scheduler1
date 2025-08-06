@@ -3,6 +3,7 @@
 ## 🎯 **Problem Solved**
 
 The `backend/scripts/seeds/` directory had **6 obsolete seed scripts** that were:
+
 - ❌ **Outdated** - Didn't match current database schema
 - ❌ **Incomplete** - Missing enhanced fairness tables and ROI metrics
 - ❌ **Confusing** - Multiple scripts with overlapping functionality
@@ -11,6 +12,7 @@ The `backend/scripts/seeds/` directory had **6 obsolete seed scripts** that were
 ## ✅ **Solution Implemented**
 
 ### **Before (Obsolete Scripts)**
+
 ```
 backend/scripts/seeds/
 ├── seed.js                    # ❌ Old asset-only seeding
@@ -22,7 +24,8 @@ backend/scripts/seeds/
 ```
 
 ### **After (Unified Solution)**
-```
+
+```javascript
 backend/scripts/seeds/
 ├── README.md                  # 📖 Updated documentation
 ├── unifiedSeedScript.js       # ✅ NEW: Complete unified seeding
@@ -39,6 +42,7 @@ backend/scripts/seeds/
 ### **`unifiedSeedScript.js` - Complete Database Seeding**
 
 #### **Features:**
+
 - ✅ **Comprehensive** - Seeds all 30+ database tables
 - ✅ **Current Schema** - Matches latest database structure
 - ✅ **Enhanced Features** - Includes fairness system and ROI metrics
@@ -46,6 +50,7 @@ backend/scripts/seeds/
 - ✅ **Well Documented** - Clear comments and structure
 
 #### **What It Seeds:**
+
 ```javascript
 // Complete seeding in dependency order
 await this.seedOrganizations();    // 4 organizations (Apollo, TechCorp, etc.)
@@ -64,6 +69,7 @@ await this.seedROIMetrics();       // ROI tracking (engagement, conversion, reve
 ### **Tables Seeded by Unified Script:**
 
 #### **Core Tables**
+
 - ✅ `organizations` - Multi-tenant SaaS structure
 - ✅ `users` - Platform and organization users
 - ✅ `assets` - Primary, secondary, tertiary assets
@@ -72,18 +78,21 @@ await this.seedROIMetrics();       // ROI tracking (engagement, conversion, reve
 - ✅ `bids` - Bidding data for auctions
 
 #### **Enhanced Fairness System**
+
 - ✅ `slot_allocation` - Internal/external/monetization splits
 - ✅ `fairness_scores` - Calculated fairness for internal campaigns
 - ✅ `asset_monetization_limits` - Asset-specific monetization caps
 - ✅ `asset_fairness_config` - Asset-specific fairness settings
 
 #### **ROI Tracking System**
+
 - ✅ `engagement_metrics` - User interactions and engagement
 - ✅ `conversion_metrics` - Booking conversions and rates
 - ✅ `revenue_metrics` - Daily revenue and ROI ratios
 - ✅ `performance_metrics` - Creative performance data
 
 #### **RBAC System**
+
 - ✅ `permissions` - System permissions
 - ✅ `roles` - User roles
 - ✅ `role_permissions` - Role-permission mappings
@@ -92,12 +101,14 @@ await this.seedROIMetrics();       // ROI tracking (engagement, conversion, reve
 ## 🔧 **Usage**
 
 ### **For New Contributors**
+
 ```bash
 # Run the unified seed script (recommended)
 node backend/scripts/seeds/unifiedSeedScript.js
 ```
 
 ### **What You Get:**
+
 - 🏢 **4 Organizations** - Apollo Healthcare, TechCorp, HealthFirst, EduTech
 - 👥 **11 Users** - Platform admins and organization users
 - 🔐 **RBAC System** - 28 permissions, 10 roles, user-role mappings
@@ -111,12 +122,14 @@ node backend/scripts/seeds/unifiedSeedScript.js
 ## 📋 **Sample Data Overview**
 
 ### **Organizations by Plan Type**
+
 - **Apollo Healthcare** (Enterprise) - Internal healthcare campaigns
 - **TechCorp Solutions** (Pro) - External tech campaigns  
 - **HealthFirst Medical** (Pro) - External healthcare campaigns
 - **EduTech Academy** (Basic) - External education campaigns
 
 ### **Assets by Level**
+
 - **Primary Assets** (20% monetization cap)
   - Homepage Hero Banner (100k impressions/day, ₹5000 value)
   - App Launch Bottom Sheet (80k impressions/day, ₹4000 value)
@@ -131,6 +144,7 @@ node backend/scripts/seeds/unifiedSeedScript.js
   - Email Template Header (10k impressions/day, ₹600 value)
 
 ### **Campaign Types**
+
 - **Internal Campaigns** (Apollo Healthcare)
   - Apollo Q4 Brand Awareness (₹10L budget)
   - Apollo Pharmacy Promotion (₹5L budget)
@@ -144,18 +158,21 @@ node backend/scripts/seeds/unifiedSeedScript.js
 ## 🎉 **Benefits**
 
 ### **For New Contributors**
+
 - ✅ **Single Script** - No confusion about which script to run
 - ✅ **Complete Data** - All features work with sample data
 - ✅ **Current Schema** - No errors from outdated references
 - ✅ **Well Documented** - Clear understanding of what's seeded
 
 ### **For Development**
+
 - ✅ **Comprehensive Testing** - All features have sample data
 - ✅ **Enhanced Features** - Fairness system and ROI tracking work
 - ✅ **Proper Relationships** - Foreign keys and constraints work
 - ✅ **Realistic Data** - Representative of production scenarios
 
 ### **For Maintenance**
+
 - ✅ **Single Source** - One script to maintain
 - ✅ **Clear Structure** - Easy to modify and extend
 - ✅ **Dependency Management** - Proper seeding order
@@ -173,18 +190,21 @@ node backend/scripts/seeds/unifiedSeedScript.js
 ### **Why Old Scripts Are Obsolete:**
 
 #### **Schema Mismatches**
+
 - ❌ Old scripts reference `advertisers` table (doesn't exist)
 - ❌ Old scripts use `bookings` table (now unified with `campaigns`)
 - ❌ Old scripts missing enhanced fairness tables
 - ❌ Old scripts missing ROI tracking tables
 
 #### **Missing Features**
+
 - ❌ No enhanced fairness system data
 - ❌ No ROI metrics (engagement, conversion, revenue)
 - ❌ No asset-specific monetization limits
 - ❌ No proper RBAC system data
 
 #### **Incomplete Data**
+
 - ❌ Missing relationships between tables
 - ❌ Missing foreign key data
 - ❌ Missing required fields
@@ -193,6 +213,7 @@ node backend/scripts/seeds/unifiedSeedScript.js
 ## 📝 **Best Practices Going Forward**
 
 ### **Adding New Seed Data**
+
 ```javascript
 // Add to the appropriate method in unifiedSeedScript.js
 async seedNewFeature() {
@@ -214,6 +235,7 @@ async seedNewFeature() {
 ```
 
 ### **Modifying Existing Data**
+
 ```javascript
 // Modify the arrays in the appropriate method
 const organizations = [
@@ -228,6 +250,7 @@ const organizations = [
 ```
 
 ### **Environment-Specific Seeding**
+
 ```javascript
 // Add environment checks if needed
 if (process.env.NODE_ENV === 'development') {

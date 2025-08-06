@@ -89,48 +89,28 @@ class UnifiedSeedScript {
     const organizations = [
       {
         name: 'Apollo Healthcare',
-        domain: 'apollo.com',
-        plan_type: 'enterprise',
-        max_campaigns: 200,
-        max_users: 50,
-        billing_email: 'billing@apollo.com',
-        status: 'active'
+        domain: 'apollo.com'
       },
       {
         name: 'TechCorp Solutions',
-        domain: 'techcorp.com',
-        plan_type: 'pro',
-        max_campaigns: 100,
-        max_users: 25,
-        billing_email: 'finance@techcorp.com',
-        status: 'active'
+        domain: 'techcorp.com'
       },
       {
         name: 'HealthFirst Medical',
-        domain: 'healthfirst.com',
-        plan_type: 'pro',
-        max_campaigns: 75,
-        max_users: 20,
-        billing_email: 'accounts@healthfirst.com',
-        status: 'active'
+        domain: 'healthfirst.com'
       },
       {
         name: 'EduTech Academy',
-        domain: 'edutech.edu',
-        plan_type: 'basic',
-        max_campaigns: 30,
-        max_users: 10,
-        billing_email: 'admin@edutech.edu',
-        status: 'active'
+        domain: 'edutech.edu'
       }
     ];
 
     for (const org of organizations) {
       const result = await db.query(
-        `INSERT INTO organizations (name, domain, plan_type, max_campaigns, max_users, billing_email, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO organizations (name, domain)
+         VALUES ($1, $2)
          RETURNING id`,
-        [org.name, org.domain, org.plan_type, org.max_campaigns, org.max_users, org.billing_email, org.status]
+        [org.name, org.domain]
       );
       
       this.organizations.push({ ...org, id: result.rows[0].id });
