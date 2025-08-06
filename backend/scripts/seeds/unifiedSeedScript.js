@@ -37,6 +37,7 @@ class UnifiedSeedScript {
       // Seed in order of dependencies
       await this.seedOrganizations();
       await this.seedUsers();
+      await this.seedRBACSystem(); // NEW: RBAC setup
       await this.seedAssets();
       await this.seedCampaigns();
       await this.seedCreatives();
@@ -48,6 +49,7 @@ class UnifiedSeedScript {
       console.log('\n📊 Seeding Summary:');
       console.log(`   - Organizations: ${this.organizations.length}`);
       console.log(`   - Users: ${this.users.length}`);
+      console.log(`   - RBAC System: Permissions, Roles, Mappings`);
       console.log(`   - Assets: ${this.assets.length}`);
       console.log(`   - Campaigns: ${this.campaigns.length}`);
       console.log(`   - Creatives: ${this.creatives.length}`);
@@ -230,6 +232,234 @@ class UnifiedSeedScript {
     }
     
     console.log(`   ✅ Created ${this.users.length} users`);
+  }
+
+  async seedRBACSystem() {
+    console.log('🔐 Seeding RBAC system...');
+    
+    // 1. Create permissions
+    const permissions = [
+      // Campaign permissions
+      { name: 'campaign:create', description: 'Create campaigns', resource: 'campaign', action: 'create' },
+      { name: 'campaign:read', description: 'View campaigns', resource: 'campaign', action: 'read' },
+      { name: 'campaign:update', description: 'Update campaigns', resource: 'campaign', action: 'update' },
+      { name: 'campaign:delete', description: 'Delete campaigns', resource: 'campaign', action: 'delete' },
+      { name: 'campaign:approve', description: 'Approve campaigns', resource: 'campaign', action: 'approve' },
+      { name: 'campaign:pause', description: 'Pause campaigns', resource: 'campaign', action: 'pause' },
+
+      // Creative permissions
+      { name: 'creative:create', description: 'Create creatives', resource: 'creative', action: 'create' },
+      { name: 'creative:read', description: 'View creatives', resource: 'creative', action: 'read' },
+      { name: 'creative:update', description: 'Update creatives', resource: 'creative', action: 'update' },
+      { name: 'creative:delete', description: 'Delete creatives', resource: 'creative', action: 'delete' },
+      { name: 'creative:approve', description: 'Approve creatives', resource: 'creative', action: 'approve' },
+
+      // User management permissions
+      { name: 'user:create', description: 'Create users', resource: 'user', action: 'create' },
+      { name: 'user:read', description: 'View users', resource: 'user', action: 'read' },
+      { name: 'user:update', description: 'Update users', resource: 'user', action: 'update' },
+      { name: 'user:delete', description: 'Delete users', resource: 'user', action: 'delete' },
+      { name: 'user:assign_roles', description: 'Assign roles to users', resource: 'user', action: 'assign_roles' },
+
+      // Role management permissions
+      { name: 'role:create', description: 'Create roles', resource: 'role', action: 'create' },
+      { name: 'role:read', description: 'View roles', resource: 'role', action: 'read' },
+      { name: 'role:update', description: 'Update roles', resource: 'role', action: 'update' },
+      { name: 'role:delete', description: 'Delete roles', resource: 'role', action: 'delete' },
+      { name: 'role:assign_permissions', description: 'Assign permissions to roles', resource: 'role', action: 'assign_permissions' },
+
+      // Analytics permissions
+      { name: 'analytics:read', description: 'View analytics', resource: 'analytics', action: 'read' },
+      { name: 'analytics:export', description: 'Export analytics', resource: 'analytics', action: 'export' },
+      { name: 'analytics:realtime', description: 'View real-time analytics', resource: 'analytics', action: 'realtime' },
+
+      // Organization permissions
+      { name: 'organization:read', description: 'View organization', resource: 'organization', action: 'read' },
+      { name: 'organization:update', description: 'Update organization', resource: 'organization', action: 'update' },
+
+      // Billing permissions
+      { name: 'billing:read', description: 'View billing', resource: 'billing', action: 'read' },
+      { name: 'billing:update', description: 'Update billing', resource: 'billing', action: 'update' }
+    ];
+
+    for (const permission of permissions) {
+      await db.query(
+        `INSERT INTO permissions (name, description, resource, action)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (name) DO NOTHING`,
+        [permission.name, permission.description, permission.resource, permission.action]
+      );
+    }
+    
+    console.log(`   ✅ Created ${permissions.length} permissions`);
+
+    // 2. Create roles
+    const roles = [
+      // Platform roles (no organization)
+      { name: 'platform_admin', description: 'Platform Super Administrator', organization_id: null, is_system_role: true },
+      { name: 'support', description: 'SaaS Support Team', organization_id: null, is_system_role: true },
+      { name: 'sales', description: 'Sales Team', organization_id: null, is_system_role: true },
+      
+      // Organization roles
+      { name: 'org_admin', description: 'Organization Administrator', organization_id: null, is_system_role: true },
+      { name: 'marketing_manager', description: 'Marketing Manager', organization_id: null, is_system_role: true },
+      { name: 'campaign_manager', description: 'Campaign Manager', organization_id: null, is_system_role: true },
+      { name: 'creative_manager', description: 'Creative Manager', organization_id: null, is_system_role: true },
+      { name: 'analyst', description: 'Analyst', organization_id: null, is_system_role: true },
+      { name: 'data_analyst', description: 'Data Analyst', organization_id: null, is_system_role: true },
+      { name: 'digital_manager', description: 'Digital Manager', organization_id: null, is_system_role: true }
+    ];
+
+    for (const role of roles) {
+      await db.query(
+        `INSERT INTO roles (name, description, organization_id, is_system_role)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (name, organization_id) DO NOTHING`,
+        [role.name, role.description, role.organization_id, role.is_system_role]
+      );
+    }
+    
+    console.log(`   ✅ Created ${roles.length} roles`);
+
+    // 3. Assign permissions to roles
+    const rolePermissionMappings = {
+      // Platform Admin - All permissions
+      'platform_admin': permissions.map(p => p.name),
+
+      // Support - Read access to help customers
+      'support': [
+        'campaign:read', 'creative:read', 'user:read', 'analytics:read',
+        'organization:read', 'billing:read'
+      ],
+
+      // Sales - Customer data access
+      'sales': [
+        'campaign:read', 'analytics:read', 'organization:read', 'billing:read',
+        'user:read'
+      ],
+
+      // Organization Admin - Full access within organization
+      'org_admin': [
+        'campaign:create', 'campaign:read', 'campaign:update', 'campaign:delete', 'campaign:approve', 'campaign:pause',
+        'creative:create', 'creative:read', 'creative:update', 'creative:delete', 'creative:approve',
+        'user:create', 'user:read', 'user:update', 'user:delete', 'user:assign_roles',
+        'role:create', 'role:read', 'role:update', 'role:delete', 'role:assign_permissions',
+        'analytics:read', 'analytics:export', 'analytics:realtime',
+        'billing:read', 'billing:update',
+        'organization:read', 'organization:update'
+      ],
+
+      // Marketing Manager - Campaign and team management
+      'marketing_manager': [
+        'campaign:create', 'campaign:read', 'campaign:update', 'campaign:approve', 'campaign:pause',
+        'creative:create', 'creative:read', 'creative:update', 'creative:approve',
+        'user:read', 'user:update',
+        'analytics:read', 'analytics:export',
+        'organization:read'
+      ],
+
+      // Campaign Manager - Campaign management
+      'campaign_manager': [
+        'campaign:create', 'campaign:read', 'campaign:update', 'campaign:pause',
+        'creative:read', 'creative:update',
+        'analytics:read',
+        'organization:read'
+      ],
+
+      // Creative Manager - Creative asset management
+      'creative_manager': [
+        'campaign:read',
+        'creative:create', 'creative:read', 'creative:update', 'creative:delete', 'creative:approve',
+        'analytics:read',
+        'organization:read'
+      ],
+
+      // Analyst - Analytics and reporting
+      'analyst': [
+        'campaign:read',
+        'creative:read',
+        'analytics:read', 'analytics:export',
+        'organization:read'
+      ],
+
+      // Data Analyst - Advanced analytics
+      'data_analyst': [
+        'campaign:read', 'campaign:update',
+        'creative:read',
+        'analytics:read', 'analytics:export', 'analytics:realtime',
+        'organization:read'
+      ],
+
+      // Digital Manager - Digital campaign management
+      'digital_manager': [
+        'campaign:create', 'campaign:read', 'campaign:update', 'campaign:pause',
+        'creative:read', 'creative:update',
+        'analytics:read', 'analytics:export',
+        'organization:read'
+      ]
+    };
+
+    // Get role and permission IDs
+    const rolesResult = await db.query('SELECT id, name FROM roles');
+    const permissionsResult = await db.query('SELECT id, name FROM permissions');
+    
+    const rolesMap = {};
+    const permissionsMap = {};
+    
+    rolesResult.rows.forEach(role => rolesMap[role.name] = role.id);
+    permissionsResult.rows.forEach(permission => permissionsMap[permission.name] = permission.id);
+
+    // Assign permissions to roles
+    for (const [roleName, permissionNames] of Object.entries(rolePermissionMappings)) {
+      const roleId = rolesMap[roleName];
+      if (!roleId) continue;
+
+      for (const permissionName of permissionNames) {
+        const permissionId = permissionsMap[permissionName];
+        if (!permissionId) continue;
+
+        await db.query(
+          `INSERT INTO role_permissions (role_id, permission_id)
+           VALUES ($1, $2)
+           ON CONFLICT (role_id, permission_id) DO NOTHING`,
+          [roleId, permissionId]
+        );
+      }
+    }
+    
+    console.log('   ✅ Assigned permissions to roles');
+
+    // 4. Assign roles to users
+    const userRoleMappings = [
+      { userEmail: 'platform.admin@adsaas.com', roleName: 'platform_admin' },
+      { userEmail: 'support@adsaas.com', roleName: 'support' },
+      { userEmail: 'ceo@apollo.com', roleName: 'org_admin' },
+      { userEmail: 'marketing@apollo.com', roleName: 'marketing_manager' },
+      { userEmail: 'pharmacy@apollo.com', roleName: 'campaign_manager' },
+      { userEmail: 'diagnostics@apollo.com', roleName: 'campaign_manager' },
+      { userEmail: 'ceo@techcorp.com', roleName: 'org_admin' },
+      { userEmail: 'marketing@techcorp.com', roleName: 'marketing_manager' },
+      { userEmail: 'director@healthfirst.com', roleName: 'org_admin' },
+      { userEmail: 'campaigns@healthfirst.com', roleName: 'campaign_manager' },
+      { userEmail: 'admin@edutech.edu', roleName: 'org_admin' }
+    ];
+
+    for (const mapping of userRoleMappings) {
+      const user = this.users.find(u => u.email === mapping.userEmail);
+      const roleId = rolesMap[mapping.roleName];
+      
+      if (user && roleId) {
+        await db.query(
+          `INSERT INTO user_roles (user_id, role_id, organization_id)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (user_id, role_id, organization_id) DO NOTHING`,
+          [user.id, roleId, user.organization_id]
+        );
+      }
+    }
+    
+    console.log('   ✅ Assigned roles to users');
+    console.log('   ✅ RBAC system setup completed');
   }
 
   async seedAssets() {

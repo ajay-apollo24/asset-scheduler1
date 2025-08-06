@@ -49,11 +49,12 @@ backend/scripts/seeds/
 ```javascript
 // Complete seeding in dependency order
 await this.seedOrganizations();    // 4 organizations (Apollo, TechCorp, etc.)
-await this.seedUsers();            // 10 users with proper roles
+await this.seedUsers();            // 11 users with proper roles
+await this.seedRBACSystem();       // 🔐 RBAC permissions, roles, mappings
 await this.seedAssets();           // 7 assets (primary/secondary/tertiary)
 await this.seedCampaigns();        // 6 campaigns (internal/external)
 await this.seedCreatives();        // 3 creatives with content
-await this.seedBids();             // 3 bids for internal campaigns
+await this.seedBids();             // 3 bids for internal campaigns (when table updated)
 await this.seedEnhancedFairnessData(); // Slot allocation & fairness scores
 await this.seedROIMetrics();       // ROI tracking (engagement, conversion, revenue)
 ```
@@ -98,11 +99,12 @@ node backend/scripts/seeds/unifiedSeedScript.js
 
 ### **What You Get:**
 - 🏢 **4 Organizations** - Apollo Healthcare, TechCorp, HealthFirst, EduTech
-- 👥 **10 Users** - Platform admins and organization users
+- 👥 **11 Users** - Platform admins and organization users
+- 🔐 **RBAC System** - 28 permissions, 10 roles, user-role mappings
 - 🏗️ **7 Assets** - Primary, secondary, tertiary with proper levels
 - 📢 **6 Campaigns** - Internal (Apollo) and external (SaaS customers)
 - 🎨 **3 Creatives** - Ad creatives with proper content
-- 💰 **3 Bids** - Bidding data for internal campaigns
+- 💰 **Bids** - Temporarily skipped (table structure needs update)
 - ⚖️ **Enhanced Fairness** - Slot allocation and fairness scores
 - 📊 **ROI Metrics** - 30 days of engagement, conversion, revenue data
 
