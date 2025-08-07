@@ -19,5 +19,19 @@ module.exports = {
   testTimeout: 30000,
   verbose: true,
   forceExit: true,
-  detectOpenHandles: true
+  detectOpenHandles: true,
+  
+  // Environment variables for test configuration
+  globals: {
+    // Set to 'integration' to run against real server, 'unit' for mocks
+    TEST_MODE: process.env.TEST_MODE || 'integration',
+    // Server configuration for integration tests
+    TEST_SERVER_URL: process.env.TEST_SERVER_URL || 'http://localhost:5001',
+    // Database configuration for integration tests
+    TEST_DB_NAME: process.env.TEST_DB_NAME || 'asset_allocation_test',
+    TEST_DB_USER: process.env.TEST_DB_USER || 'asset_allocation',
+    TEST_DB_PASSWORD: process.env.TEST_DB_PASSWORD || 'asset_allocation',
+    TEST_DB_HOST: process.env.TEST_DB_HOST || 'localhost',
+    TEST_DB_PORT: process.env.TEST_DB_PORT || '5435'
+  }
 }; 

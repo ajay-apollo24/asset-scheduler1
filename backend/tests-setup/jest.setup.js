@@ -51,26 +51,44 @@ jest.mock('../modules/shared/index', () => {
   };
 });
 
-// Global test utilities for integration testing
+const db = require('../config/db');
+
+// Test configuration
+const TEST_MODE = process.env.TEST_MODE || 'integration';
+const baseURL = process.env.TEST_SERVER_URL || 'http://localhost:5001';
+
+console.log(`🧪 Running tests in ${TEST_MODE.toUpperCase()} mode`);
+console.log(`🌐 Server URL: ${baseURL}`);
+
+// Global test utilities
 global.testUtils = {
-  // Base URL for the running server
-  baseURL: 'http://localhost:5001',
+  // Test mode configuration
+  isIntegrationMode: TEST_MODE === 'integration',
+  isUnitMode: TEST_MODE === 'unit',
   
-  // Helper to make authenticated requests
-  authenticatedRequest: (request, token) => {
-    return request.set('Authorization', `Bearer ${token}`);
+  // Server configuration
+  baseURL,
+  
+  // Database configuration
+  dbConfig: {
+    host: process.env.TEST_DB_HOST || 'localhost',
+    port: process.env.TEST_DB_PORT || '5435',
+    database: process.env.TEST_DB_NAME || 'asset_allocation_test',
+    user: process.env.TEST_DB_USER || 'asset_allocation',
+    password: process.env.TEST_DB_PASSWORD || 'asset_allocation'
   },
-  
-  // Mock request/response utilities for unit tests
-  mockRequest: (overrides = {}) => ({
+
+  // Mock request/response objects for unit tests
+  mockRequest: () => ({
     body: {},
     params: {},
     query: {},
     headers: {},
-    user: { id: 1, role: 'user' },
-    ...overrides
+    user: { user_id: 1, email: 'test@example.com', role: 'admin' },
+    ip: '127.0.0.1',
+    get: jest.fn().mockReturnValue('test-user-agent')
   }),
-  
+
   mockResponse: () => {
     const res = {};
     res.status = jest.fn().mockReturnValue(res);
@@ -79,362 +97,305 @@ global.testUtils = {
     res.end = jest.fn().mockReturnValue(res);
     return res;
   },
-  
+
   mockNext: () => jest.fn(),
-  
-  // Generate test data utilities
-  generateTestUser: (overrides = {}) => ({
-    id: 1,
-    email: 'test@example.com',
-    username: 'testuser',
-    role: 'user',
-    ...overrides
-  }),
-  
-  generateTestAsset: (overrides = {}) => ({
-    id: 1,
-    name: 'Test Asset',
-    type: 'billboard',
-    location: 'Test Location',
-    level: 'secondary',
-    ...overrides
-  }),
-  
-  generateTestBooking: (overrides = {}) => ({
-    id: 1,
-    title: 'Test Booking',
-    asset_id: 1,
-    user_id: 1,
-    start_date: '2024-01-15',
-    end_date: '2024-01-20',
-    status: 'pending',
-    ...overrides
-  }),
-  
-  generateTestCreative: (overrides = {}) => ({
-    id: 1,
-    name: 'Test Creative',
-    type: 'image',
-    status: 'approved',
-    asset_id: 1,
-    campaign_id: 1,
-    ...overrides
-  }),
-  
-  generateTestCampaign: (overrides = {}) => ({
-    id: 1,
-    name: 'Test Campaign',
-    status: 'active',
-    budget: 1000.00,
-    ...overrides
-  }),
-  
-  generateTestBid: (overrides = {}) => ({
-    id: 1,
-    booking_id: 1,
-    user_id: 1,
-    amount: 100.00,
-    status: 'active',
-    ...overrides
-  }),
-  
-  // Helper to create test data in database
-  createTestUser: async (overrides = {}) => {
-    // This will create a real user in the test database
-    const db = require('../config/db');
-    const defaultUser = {
-      email: 'test@example.com',
-      password_hash: 'hashed_password',
-      organization_id: 1,
-      ...overrides
+
+  // Integration test utilities
+  async makeRequest(method, endpoint, data = null, token = null) {
+    if (!this.isIntegrationMode) {
+      throw new Error('makeRequest only available in integration mode');
+    }
+
+    const url = `${this.baseURL}${endpoint}`;
+    const options = {
+      method: method.toUpperCase(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
     };
+
+    if (data && ['POST', 'PUT', 'PATCH'].includes(options.method)) {
+      options.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(url, options);
+    const responseData = await response.text();
     
-    const result = await db.query(
-      'INSERT INTO users (email, password_hash, organization_id) VALUES ($1, $2, $3) RETURNING *',
-      [defaultUser.email, defaultUser.password_hash, defaultUser.organization_id]
-    );
-    
-    // Assign default user role
-    await db.query(
-      'INSERT INTO user_roles (user_id, role_id, organization_id) VALUES ($1, $2, $3)',
-      [result.rows[0].id, 2, defaultUser.organization_id] // role_id 2 = 'user'
-    );
-    
-    return result.rows[0];
-  },
-  
-  createTestAdmin: async (overrides = {}) => {
-    // This will create a real admin user in the test database
-    const db = require('../config/db');
-    const defaultAdmin = {
-      email: 'admin@example.com',
-      password_hash: 'hashed_password',
-      organization_id: 1,
-      ...overrides
-    };
-    
-    const result = await db.query(
-      'INSERT INTO users (email, password_hash, organization_id) VALUES ($1, $2, $3) RETURNING *',
-      [defaultAdmin.email, defaultAdmin.password_hash, defaultAdmin.organization_id]
-    );
-    
-    // Assign admin role
-    await db.query(
-      'INSERT INTO user_roles (user_id, role_id, organization_id) VALUES ($1, $2, $3)',
-      [result.rows[0].id, 1, defaultAdmin.organization_id] // role_id 1 = 'admin'
-    );
-    
-    return result.rows[0];
-  },
-  
-  createTestAsset: async (overrides = {}) => {
-    const db = require('../config/db');
-    const defaultAsset = {
-      name: 'Test Asset',
-      type: 'billboard',
-      location: 'Test Location',
-      level: 'secondary',
-      max_slots: 2,
-      importance: 3,
-      impressions_per_day: 10000,
-      value_per_day: 500.00,
-      is_active: true,
-      ...overrides
-    };
-    
-    const result = await db.query(
-      `INSERT INTO assets (name, type, location, level, max_slots, importance, impressions_per_day, value_per_day, is_active) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [defaultAsset.name, defaultAsset.type, defaultAsset.location, defaultAsset.level, 
-       defaultAsset.max_slots, defaultAsset.importance, defaultAsset.impressions_per_day, 
-       defaultAsset.value_per_day, defaultAsset.is_active]
-    );
-    return result.rows[0];
-  },
-  
-  createTestBooking: async (overrides = {}) => {
-    const db = require('../config/db');
-    const defaultBooking = {
-      title: 'Test Booking',
-      asset_id: 1,
-      user_id: 1,
-      start_date: '2024-01-15',
-      end_date: '2024-01-20',
-      status: 'pending',
-      ...overrides
-    };
-    
-    const result = await db.query(
-      'INSERT INTO bookings (title, asset_id, user_id, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [defaultBooking.title, defaultBooking.asset_id, defaultBooking.user_id, defaultBooking.start_date, defaultBooking.end_date, defaultBooking.status]
-    );
-    return result.rows[0];
-  },
-  
-  createTestCreative: async (overrides = {}) => {
-    const db = require('../config/db');
-    const defaultCreative = {
-      name: 'Test Creative',
-      type: 'image',
-      status: 'approved',
-      asset_id: 1,
-      campaign_id: 1,
-      url: 'https://example.com/test-creative.jpg',
-      dimensions: JSON.stringify({ width: 728, height: 90 }),
-      file_size: 50000,
-      ...overrides
-    };
-    
-    const result = await db.query(
-      `INSERT INTO creatives (name, type, status, asset_id, campaign_id, url, dimensions, file_size) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [defaultCreative.name, defaultCreative.type, defaultCreative.status, defaultCreative.asset_id,
-       defaultCreative.campaign_id, defaultCreative.url, defaultCreative.dimensions, defaultCreative.file_size]
-    );
-    return result.rows[0];
-  },
-  
-  createTestCampaign: async (overrides = {}) => {
-    const db = require('../config/db');
-    const defaultCampaign = {
-      name: 'Test Campaign',
-      status: 'active',
-      budget: 1000.00,
-      advertiser_id: 1,
-      start_date: new Date(),
-      end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      targeting_criteria: JSON.stringify({ geo: { countries: ['US'] } }),
-      creative_settings: JSON.stringify({ format: 'banner', dimensions: { width: 728, height: 90 } }),
-      performance_settings: JSON.stringify({ optimization_goal: 'impressions', target_cpa: 1000 }),
-      ...overrides
-    };
-    
-    const result = await db.query(
-      `INSERT INTO campaigns (name, status, budget, advertiser_id, start_date, end_date, targeting_criteria, creative_settings, performance_settings) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [defaultCampaign.name, defaultCampaign.status, defaultCampaign.budget, defaultCampaign.advertiser_id,
-       defaultCampaign.start_date, defaultCampaign.end_date, defaultCampaign.targeting_criteria,
-       defaultCampaign.creative_settings, defaultCampaign.performance_settings]
-    );
-    return result.rows[0];
-  },
-  
-  // Cleanup test data
-  cleanup: async () => {
-    const db = require('../config/db');
+    let jsonData;
     try {
-      // Clean up in reverse dependency order
-      await db.query('DELETE FROM bids WHERE bid_amount > 0');
-      await db.query('DELETE FROM creatives WHERE name LIKE \'Test%\'');
-      await db.query('DELETE FROM campaigns WHERE name LIKE \'Test%\'');
-      await db.query('DELETE FROM assets WHERE name LIKE \'Test%\'');
-      await db.query('DELETE FROM approvals WHERE decided_by IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
-      await db.query('DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
-      await db.query('DELETE FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\'');
+      jsonData = JSON.parse(responseData);
+    } catch (e) {
+      jsonData = responseData;
+    }
+
+    return {
+      status: response.status,
+      data: jsonData,
+      headers: response.headers,
+      ok: response.ok
+    };
+  },
+
+  // Authentication utilities for integration tests
+  async loginUser(email, password) {
+    if (!this.isIntegrationMode) {
+      return { token: 'mock-token' };
+    }
+
+    const response = await this.makeRequest('POST', '/api/auth/login', {
+      email,
+      password
+    });
+
+    if (response.ok) {
+      return response.data;
+    }
+    throw new Error(`Login failed: ${response.data.message || response.status}`);
+  },
+
+  async createTestUser(userData = {}) {
+    if (!this.isIntegrationMode) {
+      return { id: 1, ...userData };
+    }
+
+    const defaultUser = {
+      email: `test-${Date.now()}@example.com`,
+      password: 'password123',
+      first_name: 'Test',
+      last_name: 'User',
+      role: 'user',
+      ...userData
+    };
+
+    const response = await this.makeRequest('POST', '/api/auth/register', defaultUser);
+    if (response.ok) {
+      return response.data;
+    }
+    throw new Error(`User creation failed: ${response.data.message || response.status}`);
+  },
+
+  // Database utilities
+  async setupTestDatabase() {
+    if (this.isUnitMode) {
+      console.log('🗄️  Unit mode: Skipping database setup');
+      return;
+    }
+
+    console.log('🗄️  Setting up test database...');
+    
+    try {
+      // Clear test data
+      await this.cleanup();
       
-      // Clean up ML/experimentation data
-      await db.query('DELETE FROM model_predictions WHERE created_at > NOW() - INTERVAL \'1 hour\'');
-      await db.query('DELETE FROM experiment_results WHERE variant_name LIKE \'Test%\'');
-      await db.query('DELETE FROM user_features WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'test%@%\')');
-      await db.query('DELETE FROM asset_features WHERE asset_id IN (SELECT id FROM assets WHERE name LIKE \'Test%\')');
-      await db.query('DELETE FROM bandit_arms WHERE arm_name LIKE \'Test%\'');
-      await db.query('DELETE FROM ctr_models WHERE model_name LIKE \'Test%\'');
+      // Create test data
+      await this.createTestData();
+      
+      console.log('✅ Test database setup complete');
     } catch (error) {
-      console.warn('Cleanup warning:', error.message);
+      console.error('❌ Test database setup failed:', error.message);
+      throw error;
     }
   },
 
-  // Create test data for ML/experimentation
-  createTestUserFeatures: async (overrides = {}) => {
-    const db = require('../config/db');
-    const defaultFeatures = {
-      user_id: 1,
-      cohort: 'test_cohort',
-      recency_days: 30,
-      frequency: 5,
-      monetary_value: 100.00,
-      purchase_history: JSON.stringify([{ product: 'test', amount: 50 }]),
-      device_type: 'desktop',
-      location: 'US',
-      ...overrides
-    };
-    
-    const result = await db.query(
-      `INSERT INTO user_features (user_id, cohort, recency_days, frequency, monetary_value, purchase_history, device_type, location) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [defaultFeatures.user_id, defaultFeatures.cohort, defaultFeatures.recency_days, 
-       defaultFeatures.frequency, defaultFeatures.monetary_value, defaultFeatures.purchase_history,
-       defaultFeatures.device_type, defaultFeatures.location]
-    );
-    return result.rows[0];
+  async createTestData() {
+    if (this.isUnitMode) return;
+
+    try {
+      // Create test organizations
+      const timestamp = Date.now();
+      const org1 = await db.query(
+        'INSERT INTO organizations (name, domain) VALUES ($1, $2) RETURNING *',
+        [`Test Org 1 ${timestamp}`, `test1-${timestamp}.com`]
+      );
+
+      const org2 = await db.query(
+        'INSERT INTO organizations (name, domain) VALUES ($1, $2) RETURNING *',
+        [`Test Org 2 ${timestamp}`, `test2-${timestamp}.com`]
+      );
+
+      // Create test users
+      const user1 = await db.query(
+        'INSERT INTO users (email, password_hash, organization_id) VALUES ($1, $2, $3) RETURNING *',
+        ['test1@test1.com', '$2a$10$test.hash', org1.rows[0].id]
+      );
+
+      const user2 = await db.query(
+        'INSERT INTO users (email, password_hash, organization_id) VALUES ($1, $2, $3) RETURNING *',
+        ['test2@test2.com', '$2a$10$test.hash', org2.rows[0].id]
+      );
+
+      // Create test assets
+      const asset1 = await db.query(
+        `INSERT INTO assets (name, type, location, level, max_slots, importance, impressions_per_day, value_per_day, is_active) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        ['Test Billboard 1', 'billboard', 'Downtown', 'primary', 3, 5, 15000, 750.00, true]
+      );
+
+      const asset2 = await db.query(
+        `INSERT INTO assets (name, type, location, level, max_slots, importance, impressions_per_day, value_per_day, is_active) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+        ['Test Digital Screen 1', 'digital_screen', 'Mall', 'secondary', 2, 3, 8000, 400.00, true]
+      );
+
+      // Create test campaigns
+      const campaign1 = await db.query(
+        `INSERT INTO campaigns (name, advertiser_id, asset_id, start_date, end_date, status, budget, lob, 
+         creative_settings, performance_settings) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+        [
+          'Test Campaign 1', 
+          user1.rows[0].id, 
+          asset1.rows[0].id, 
+          new Date(Date.now() + 86400000), // Tomorrow
+          new Date(Date.now() + 7 * 86400000), // 7 days from now
+          'active',
+          5000.00,
+          'Pharmacy',
+          JSON.stringify({ format: 'banner', dimensions: '300x250' }),
+          JSON.stringify({ optimization_goal: 'clicks' })
+        ]
+      );
+
+      // Create test creatives
+      const creative1 = await db.query(
+        `INSERT INTO creatives (name, campaign_id, asset_id, type, dimensions, file_size, status, content) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [
+          'Test Creative 1',
+          campaign1.rows[0].id,
+          asset1.rows[0].id,
+          'banner',
+          JSON.stringify({ width: 300, height: 250 }),
+          50000,
+          'active',
+          'Test creative content'
+        ]
+      );
+
+      console.log('✅ Test data created successfully');
+    } catch (error) {
+      console.error('❌ Test data creation failed:', error.message);
+      throw error;
+    }
   },
 
-  createTestAssetFeatures: async (overrides = {}) => {
-    const db = require('../config/db');
-    const defaultFeatures = {
-      asset_id: 1,
-      historical_ctr: 0.025,
-      revenue_per_view: 0.50,
-      avg_bid_price: 2.00,
-      performance_score: 0.85,
-      category_performance: JSON.stringify({ ctr: 0.03, revenue: 0.60 }),
-      ...overrides
-    };
+  // Wait for server to be ready
+  waitForServer: async () => {
+    if (global.testUtils.isUnitMode) {
+      console.log('⏭️  Unit mode: Skipping server wait');
+      return;
+    }
+
+    const maxAttempts = 60;
+    const delay = 500;
     
-    const result = await db.query(
-      `INSERT INTO asset_features (asset_id, historical_ctr, revenue_per_view, avg_bid_price, performance_score, category_performance) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [defaultFeatures.asset_id, defaultFeatures.historical_ctr, defaultFeatures.revenue_per_view,
-       defaultFeatures.avg_bid_price, defaultFeatures.performance_score, defaultFeatures.category_performance]
-    );
-    return result.rows[0];
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetch(`${baseURL}/api/health`);
+        if (response.ok) {
+          console.log(`✅ Server is ready for testing (attempt ${attempt})`);
+          return;
+        }
+      } catch (error) {
+        if (attempt % 10 === 0) {
+          console.log(`⏳ Waiting for server... (attempt ${attempt}/${maxAttempts})`);
+        }
+      }
+      
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    console.error('❌ Server failed to start within expected time');
+    throw new Error('Server failed to start within expected time');
   },
 
-  createTestCTRModel: async (overrides = {}) => {
-    const db = require('../config/db');
-    const defaultModel = {
-      model_name: 'Test Model',
-      model_type: 'logistic_regression',
-      features: JSON.stringify(['user_cohort', 'asset_ctr', 'time_of_day']),
-      hyperparameters: JSON.stringify({ weights: { user_cohort: 0.1, asset_ctr: 0.8 }, bias: 0.1 }),
-      performance_metrics: JSON.stringify({ auc: 0.85, accuracy: 0.78 }),
-      is_active: true,
-      ...overrides
-    };
-    
-    const result = await db.query(
-      `INSERT INTO ctr_models (model_name, model_type, features, hyperparameters, performance_metrics, is_active) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [defaultModel.model_name, defaultModel.model_type, defaultModel.features,
-       defaultModel.hyperparameters, defaultModel.performance_metrics, defaultModel.is_active]
-    );
-    return result.rows[0];
+  // Close database connections
+  closeDatabase: async () => {
+    try {
+      await db.close();
+      console.log('✅ Database connections closed');
+    } catch (error) {
+      console.warn('Warning: Error closing database connections:', error.message);
+    }
   },
 
-  createTestBanditArm: async (overrides = {}) => {
-    const db = require('../config/db');
-    const defaultArm = {
-      arm_name: 'Test Arm',
-      algorithm: 'thompson_sampling',
-      alpha: 1.0,
-      beta: 1.0,
-      total_pulls: 100,
-      total_rewards: 25,
-      is_active: true,
-      ...overrides
-    };
-    
-    const result = await db.query(
-      `INSERT INTO bandit_arms (arm_name, algorithm, alpha, beta, total_pulls, total_rewards, is_active) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [defaultArm.arm_name, defaultArm.algorithm, defaultArm.alpha, defaultArm.beta,
-       defaultArm.total_pulls, defaultArm.total_rewards, defaultArm.is_active]
-    );
-    return result.rows[0];
-  },
+  // Cleanup test data
+  cleanup: async () => {
+    if (global.testUtils.isUnitMode) {
+      console.log('⏭️  Unit mode: Skipping cleanup');
+      return;
+    }
 
-  createTestExperiment: async (overrides = {}) => {
-    const db = require('../config/db');
-    const defaultExperiment = {
-      experiment_name: 'Test Experiment',
-      experiment_type: 'ab_test',
-      status: 'active',
-      traffic_split: JSON.stringify({ control: 0.5, treatment: 0.5 }),
-      metrics: JSON.stringify(['ctr', 'conversion_rate']),
-      start_date: new Date(),
-      end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      ...overrides
-    };
-    
-    const result = await db.query(
-      `INSERT INTO experiments (experiment_name, experiment_type, status, traffic_split, metrics, start_date, end_date) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [defaultExperiment.experiment_name, defaultExperiment.experiment_type, defaultExperiment.status,
-       defaultExperiment.traffic_split, defaultExperiment.metrics, defaultExperiment.start_date, defaultExperiment.end_date]
-    );
-    return result.rows[0];
-  },
-
-  createTestModelPrediction: async (overrides = {}) => {
-    const db = require('../config/db');
-    const defaultPrediction = {
-      user_id: 1,
-      asset_id: 1,
-      predicted_ctr: 0.025,
-      predicted_cvr: 0.015,
-      confidence_score: 0.85,
-      features_used: JSON.stringify({ user_cohort: 'test', asset_ctr: 0.03 }),
-      context: JSON.stringify({ time_of_day: 'morning', device: 'desktop' }),
-      ...overrides
-    };
-    
-    const result = await db.query(
-      `INSERT INTO model_predictions (user_id, asset_id, predicted_ctr, predicted_cvr, confidence_score, features_used, context) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [defaultPrediction.user_id, defaultPrediction.asset_id, defaultPrediction.predicted_ctr,
-       defaultPrediction.predicted_cvr, defaultPrediction.confidence_score, defaultPrediction.features_used, defaultPrediction.context]
-    );
-    return result.rows[0];
+    try {
+      // Clean up in reverse dependency order
+      try {
+        await db.query('DELETE FROM creatives WHERE name LIKE \'Test%\'');
+      } catch (error) {
+        // Table might not exist
+      }
+      try {
+        await db.query('DELETE FROM campaigns WHERE name LIKE \'Test%\'');
+      } catch (error) {
+        // Table might not exist
+      }
+      try {
+        await db.query('DELETE FROM assets WHERE name LIKE \'Test%\'');
+      } catch (error) {
+        // Table might not exist
+      }
+      try {
+        await db.query('DELETE FROM approvals WHERE decided_by IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
+      } catch (error) {
+        // Table might not exist
+      }
+      try {
+        await db.query('DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
+      } catch (error) {
+        // Table might not exist
+      }
+      try {
+        await db.query('DELETE FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\'');
+      } catch (error) {
+        // Table might not exist
+      }
+      
+      // Clean up ML/experimentation data
+      try {
+        await db.query('DELETE FROM model_predictions WHERE features_used LIKE \'%test%\'');
+      } catch (error) {
+        // Table might not exist
+      }
+      try {
+        await db.query('DELETE FROM experiment_results WHERE experiment_id IN (SELECT id FROM experiments WHERE name LIKE \'Test%\' OR name LIKE \'test%\')');
+      } catch (error) {
+        // Table might not exist
+      }
+      try {
+        await db.query('DELETE FROM bandit_pulls WHERE arm_id IN (SELECT id FROM bandit_arms WHERE arm_name LIKE \'Test%\' OR arm_name LIKE \'test%\')');
+      } catch (error) {
+        // Table might not exist
+      }
+      try {
+        await db.query('DELETE FROM experiments WHERE name LIKE \'Test%\' OR name LIKE \'test%\'');
+      } catch (error) {
+        // Table might not exist
+      }
+      try {
+        await db.query('DELETE FROM bandit_arms WHERE arm_name LIKE \'Test%\' OR arm_name LIKE \'test%\'');
+      } catch (error) {
+        // Table might not exist
+      }
+      try {
+        await db.query('DELETE FROM ctr_models WHERE model_name LIKE \'Test%\'');
+      } catch (error) {
+        // Table might not exist
+      }
+    } catch (error) {
+      console.warn('Cleanup warning:', error.message);
+    }
   },
 
   // Generate JWT token for testing
@@ -451,43 +412,22 @@ global.testUtils = {
       secret, 
       { expiresIn: '1h' }
     );
-  },
-  
-  // Wait for server to be ready
-  waitForServer: async () => {
-    const maxAttempts = 30;
-    const delay = 1000;
-    
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const response = await fetch(`${baseURL}/api/health`);
-        if (response.ok) {
-          console.log(`✅ Server is ready for testing`);
-          return;
-        }
-      } catch (error) {
-        // Server not ready yet
-      }
-      
-      if (attempt < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-    
-    throw new Error('Server failed to start within expected time');
-  },
-
-  // Close database connections
-  closeDatabase: async () => {
-    try {
-      const db = require('../config/db');
-      await db.close();
-      console.log('✅ Database connections closed');
-    } catch (error) {
-      console.warn('Warning: Error closing database connections:', error.message);
-    }
   }
 };
+
+// Setup based on test mode
+if (global.testUtils.isIntegrationMode) {
+  console.log('🚀 Integration test mode: Will test against real server');
+  // Wait for server to be ready
+  global.testUtils.waitForServer().then(() => {
+    console.log('✅ Jest setup complete - Integration test environment configured');
+  }).catch((error) => {
+    console.error('❌ Server setup failed:', error.message);
+  });
+} else {
+  console.log('🧪 Unit test mode: Using mocks');
+  console.log('✅ Jest setup complete - Unit test environment configured');
+}
 
 // Global test cleanup
 afterAll(async () => {
@@ -505,6 +445,4 @@ afterAll(async () => {
 // Handle unhandled promise rejections in tests
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-console.log('✅ Jest setup complete - Integration test environment configured'); 
+}); 
