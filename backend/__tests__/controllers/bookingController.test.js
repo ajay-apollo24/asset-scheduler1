@@ -35,7 +35,7 @@ describe('BookingController', () => {
       is_active: true
     };
 
-    // Setup mock booking
+    // Setup mock booking (now campaign)
     mockBooking = {
       id: 1,
       asset_id: 1,

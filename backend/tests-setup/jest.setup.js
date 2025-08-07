@@ -194,12 +194,20 @@ global.testUtils = {
       type: 'billboard',
       location: 'Test Location',
       level: 'secondary',
+      max_slots: 2,
+      importance: 3,
+      impressions_per_day: 10000,
+      value_per_day: 500.00,
+      is_active: true,
       ...overrides
     };
     
     const result = await db.query(
-      'INSERT INTO assets (name, type, location, level) VALUES ($1, $2, $3, $4) RETURNING *',
-      [defaultAsset.name, defaultAsset.type, defaultAsset.location, defaultAsset.level]
+      `INSERT INTO assets (name, type, location, level, max_slots, importance, impressions_per_day, value_per_day, is_active) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [defaultAsset.name, defaultAsset.type, defaultAsset.location, defaultAsset.level, 
+       defaultAsset.max_slots, defaultAsset.importance, defaultAsset.impressions_per_day, 
+       defaultAsset.value_per_day, defaultAsset.is_active]
     );
     return result.rows[0];
   },
@@ -231,12 +239,17 @@ global.testUtils = {
       status: 'approved',
       asset_id: 1,
       campaign_id: 1,
+      url: 'https://example.com/test-creative.jpg',
+      dimensions: JSON.stringify({ width: 728, height: 90 }),
+      file_size: 50000,
       ...overrides
     };
     
     const result = await db.query(
-      'INSERT INTO creatives (name, type, status, asset_id, campaign_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [defaultCreative.name, defaultCreative.type, defaultCreative.status, defaultCreative.asset_id, defaultCreative.campaign_id]
+      `INSERT INTO creatives (name, type, status, asset_id, campaign_id, url, dimensions, file_size) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [defaultCreative.name, defaultCreative.type, defaultCreative.status, defaultCreative.asset_id,
+       defaultCreative.campaign_id, defaultCreative.url, defaultCreative.dimensions, defaultCreative.file_size]
     );
     return result.rows[0];
   },
@@ -247,12 +260,21 @@ global.testUtils = {
       name: 'Test Campaign',
       status: 'active',
       budget: 1000.00,
+      advertiser_id: 1,
+      start_date: new Date(),
+      end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      targeting_criteria: JSON.stringify({ geo: { countries: ['US'] } }),
+      creative_settings: JSON.stringify({ format: 'banner', dimensions: { width: 728, height: 90 } }),
+      performance_settings: JSON.stringify({ optimization_goal: 'impressions', target_cpa: 1000 }),
       ...overrides
     };
     
     const result = await db.query(
-      'INSERT INTO campaigns (name, status, budget) VALUES ($1, $2, $3) RETURNING *',
-      [defaultCampaign.name, defaultCampaign.status, defaultCampaign.budget]
+      `INSERT INTO campaigns (name, status, budget, advertiser_id, start_date, end_date, targeting_criteria, creative_settings, performance_settings) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [defaultCampaign.name, defaultCampaign.status, defaultCampaign.budget, defaultCampaign.advertiser_id,
+       defaultCampaign.start_date, defaultCampaign.end_date, defaultCampaign.targeting_criteria,
+       defaultCampaign.creative_settings, defaultCampaign.performance_settings]
     );
     return result.rows[0];
   },
@@ -272,7 +294,7 @@ global.testUtils = {
       
       // Clean up ML/experimentation data
       await db.query('DELETE FROM model_predictions WHERE created_at > NOW() - INTERVAL \'1 hour\'');
-      await db.query('DELETE FROM experiment_results WHERE experiment_name LIKE \'Test%\'');
+      await db.query('DELETE FROM experiment_results WHERE variant_name LIKE \'Test%\'');
       await db.query('DELETE FROM user_features WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'test%@%\')');
       await db.query('DELETE FROM asset_features WHERE asset_id IN (SELECT id FROM assets WHERE name LIKE \'Test%\')');
       await db.query('DELETE FROM bandit_arms WHERE arm_name LIKE \'Test%\'');
@@ -290,9 +312,9 @@ global.testUtils = {
       cohort: 'test_cohort',
       recency_days: 30,
       frequency: 5,
-      monetary_value: 150.00,
-      purchase_history: JSON.stringify(['product1', 'product2']),
-      device_type: 'mobile',
+      monetary_value: 100.00,
+      purchase_history: JSON.stringify([{ product: 'test', amount: 50 }]),
+      device_type: 'desktop',
       location: 'US',
       ...overrides
     };
@@ -300,8 +322,9 @@ global.testUtils = {
     const result = await db.query(
       `INSERT INTO user_features (user_id, cohort, recency_days, frequency, monetary_value, purchase_history, device_type, location) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [defaultFeatures.user_id, defaultFeatures.cohort, defaultFeatures.recency_days, defaultFeatures.frequency, 
-       defaultFeatures.monetary_value, defaultFeatures.purchase_history, defaultFeatures.device_type, defaultFeatures.location]
+      [defaultFeatures.user_id, defaultFeatures.cohort, defaultFeatures.recency_days, 
+       defaultFeatures.frequency, defaultFeatures.monetary_value, defaultFeatures.purchase_history,
+       defaultFeatures.device_type, defaultFeatures.location]
     );
     return result.rows[0];
   },
@@ -311,19 +334,18 @@ global.testUtils = {
     const defaultFeatures = {
       asset_id: 1,
       historical_ctr: 0.025,
-      revenue_per_view: 0.15,
-      avg_bid_price: 2.50,
-      category: 'banner',
-      size: '728x90',
-      position: 'top',
+      revenue_per_view: 0.50,
+      avg_bid_price: 2.00,
+      performance_score: 0.85,
+      category_performance: JSON.stringify({ ctr: 0.03, revenue: 0.60 }),
       ...overrides
     };
     
     const result = await db.query(
-      `INSERT INTO asset_features (asset_id, historical_ctr, revenue_per_view, avg_bid_price, category, size, position) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [defaultFeatures.asset_id, defaultFeatures.historical_ctr, defaultFeatures.revenue_per_view, 
-       defaultFeatures.avg_bid_price, defaultFeatures.category, defaultFeatures.size, defaultFeatures.position]
+      `INSERT INTO asset_features (asset_id, historical_ctr, revenue_per_view, avg_bid_price, performance_score, category_performance) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [defaultFeatures.asset_id, defaultFeatures.historical_ctr, defaultFeatures.revenue_per_view,
+       defaultFeatures.avg_bid_price, defaultFeatures.performance_score, defaultFeatures.category_performance]
     );
     return result.rows[0];
   },
@@ -331,20 +353,19 @@ global.testUtils = {
   createTestCTRModel: async (overrides = {}) => {
     const db = require('../config/db');
     const defaultModel = {
-      model_name: 'Test CTR Model',
+      model_name: 'Test Model',
       model_type: 'logistic_regression',
-      version: '1.0.0',
-      features: JSON.stringify(['user_cohort', 'asset_ctr', 'device_type', 'time_of_day']),
-      hyperparameters: JSON.stringify({ learning_rate: 0.01, max_depth: 6 }),
+      features: JSON.stringify(['user_cohort', 'asset_ctr', 'time_of_day']),
+      hyperparameters: JSON.stringify({ weights: { user_cohort: 0.1, asset_ctr: 0.8 }, bias: 0.1 }),
       performance_metrics: JSON.stringify({ auc: 0.85, accuracy: 0.78 }),
       is_active: true,
       ...overrides
     };
     
     const result = await db.query(
-      `INSERT INTO ctr_models (model_name, model_type, version, features, hyperparameters, performance_metrics, is_active) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [defaultModel.model_name, defaultModel.model_type, defaultModel.version, defaultModel.features,
+      `INSERT INTO ctr_models (model_name, model_type, features, hyperparameters, performance_metrics, is_active) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [defaultModel.model_name, defaultModel.model_type, defaultModel.features,
        defaultModel.hyperparameters, defaultModel.performance_metrics, defaultModel.is_active]
     );
     return result.rows[0];
@@ -354,19 +375,20 @@ global.testUtils = {
     const db = require('../config/db');
     const defaultArm = {
       arm_name: 'Test Arm',
-      arm_type: 'thompson_sampling',
-      parameters: JSON.stringify({ alpha: 1.0, beta: 1.0 }),
-      current_reward: 0.0,
-      total_pulls: 0,
+      algorithm: 'thompson_sampling',
+      alpha: 1.0,
+      beta: 1.0,
+      total_pulls: 100,
+      total_rewards: 25,
       is_active: true,
       ...overrides
     };
     
     const result = await db.query(
-      `INSERT INTO bandit_arms (arm_name, arm_type, parameters, current_reward, total_pulls, is_active) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [defaultArm.arm_name, defaultArm.arm_type, defaultArm.parameters, defaultArm.current_reward,
-       defaultArm.total_pulls, defaultArm.is_active]
+      `INSERT INTO bandit_arms (arm_name, algorithm, alpha, beta, total_pulls, total_rewards, is_active) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [defaultArm.arm_name, defaultArm.algorithm, defaultArm.alpha, defaultArm.beta,
+       defaultArm.total_pulls, defaultArm.total_rewards, defaultArm.is_active]
     );
     return result.rows[0];
   },
@@ -378,9 +400,9 @@ global.testUtils = {
       experiment_type: 'ab_test',
       status: 'active',
       traffic_split: JSON.stringify({ control: 0.5, treatment: 0.5 }),
-      metrics: JSON.stringify(['ctr', 'conversion_rate', 'revenue']),
+      metrics: JSON.stringify(['ctr', 'conversion_rate']),
       start_date: new Date(),
-      end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       ...overrides
     };
     
@@ -396,42 +418,74 @@ global.testUtils = {
   createTestModelPrediction: async (overrides = {}) => {
     const db = require('../config/db');
     const defaultPrediction = {
-      model_id: 1,
       user_id: 1,
       asset_id: 1,
       predicted_ctr: 0.025,
       predicted_cvr: 0.015,
       confidence_score: 0.85,
-      features_used: JSON.stringify(['user_cohort', 'asset_ctr', 'device_type']),
-      context: JSON.stringify({ time_of_day: 'morning', device: 'mobile' }),
+      features_used: JSON.stringify({ user_cohort: 'test', asset_ctr: 0.03 }),
+      context: JSON.stringify({ time_of_day: 'morning', device: 'desktop' }),
       ...overrides
     };
     
     const result = await db.query(
-      `INSERT INTO model_predictions (model_id, user_id, asset_id, predicted_ctr, predicted_cvr, confidence_score, features_used, context) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [defaultPrediction.model_id, defaultPrediction.user_id, defaultPrediction.asset_id, defaultPrediction.predicted_ctr,
+      `INSERT INTO model_predictions (user_id, asset_id, predicted_ctr, predicted_cvr, confidence_score, features_used, context) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [defaultPrediction.user_id, defaultPrediction.asset_id, defaultPrediction.predicted_ctr,
        defaultPrediction.predicted_cvr, defaultPrediction.confidence_score, defaultPrediction.features_used, defaultPrediction.context]
     );
     return result.rows[0];
   },
+
+  // Generate JWT token for testing
+  generateToken: (user) => {
+    const jwt = require('jsonwebtoken');
+    const secret = process.env.JWT_SECRET || 'test-secret';
+    return jwt.sign(
+      { 
+        id: user.id, 
+        email: user.email, 
+        organization_id: user.organization_id,
+        roles: user.roles || []
+      }, 
+      secret, 
+      { expiresIn: '1h' }
+    );
+  },
   
   // Wait for server to be ready
   waitForServer: async () => {
-    const request = require('supertest');
     const maxAttempts = 30;
-    let attempts = 0;
+    const delay = 1000;
     
-    while (attempts < maxAttempts) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        await request('http://localhost:5001').get('/api/health');
-        return true;
+        const response = await fetch(`${baseURL}/api/health`);
+        if (response.ok) {
+          console.log(`✅ Server is ready for testing`);
+          return;
+        }
       } catch (error) {
-        attempts++;
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Server not ready yet
+      }
+      
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
-    throw new Error('Server not ready after 30 seconds');
+    
+    throw new Error('Server failed to start within expected time');
+  },
+
+  // Close database connections
+  closeDatabase: async () => {
+    try {
+      const db = require('../config/db');
+      await db.close();
+      console.log('✅ Database connections closed');
+    } catch (error) {
+      console.warn('Warning: Error closing database connections:', error.message);
+    }
   }
 };
 

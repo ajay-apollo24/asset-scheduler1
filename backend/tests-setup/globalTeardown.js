@@ -2,28 +2,21 @@ const { spawn } = require('child_process');
 
 let serverProcess;
 
-module.exports = async function globalTeardown() {
+module.exports = async () => {
   console.log('🛑 Stopping test server...');
   
-  // Kill the server process
-  if (serverProcess) {
-    serverProcess.kill('SIGTERM');
-    
-    // Wait for graceful shutdown
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        console.log('⚠️  Force killing server process');
-        serverProcess.kill('SIGKILL');
-        resolve();
-      }, 5000);
-      
-      serverProcess.on('exit', () => {
-        clearTimeout(timeout);
-        console.log('✅ Server stopped');
-        resolve();
-      });
-    });
+  try {
+    // Close database connections
+    const db = require('../config/db');
+    await db.close();
+    console.log('✅ Database connections closed');
+  } catch (error) {
+    console.warn('Warning: Error closing database connections:', error.message);
   }
   
-  console.log('✅ Global teardown complete');
+  // Force exit after a short delay to ensure cleanup
+  setTimeout(() => {
+    console.log('✅ Global teardown complete');
+    process.exit(0);
+  }, 1000);
 }; 

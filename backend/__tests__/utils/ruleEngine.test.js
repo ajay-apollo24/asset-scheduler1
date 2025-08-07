@@ -16,11 +16,16 @@ describe('RuleEngine', () => {
   describe('validateBookingRules', () => {
     it('should pass validation for valid booking', async () => {
       // Arrange
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 5); // 5 days from now
+      const endDate = new Date(futureDate);
+      endDate.setDate(futureDate.getDate() + 3); // 3 days after start
+
       const booking = {
         asset_id: 1,
         lob: 'Pharmacy',
-        start_date: '2024-01-15',
-        end_date: '2024-01-20'
+        start_date: futureDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0]
       };
 
       const mockAsset = {
@@ -180,11 +185,16 @@ describe('RuleEngine', () => {
 
     it('should fail when cooldown period not met', async () => {
       // Arrange
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 5); // 5 days from now
+      const endDate = new Date(futureDate);
+      endDate.setDate(futureDate.getDate() + 2); // 2 days after start
+
       const booking = {
         asset_id: 1,
         lob: 'Pharmacy',
-        start_date: '2024-01-20',
-        end_date: '2024-01-25'
+        start_date: futureDate.toISOString().split('T')[0],
+        end_date: endDate.toISOString().split('T')[0]
       };
 
       const mockAsset = {
@@ -196,7 +206,7 @@ describe('RuleEngine', () => {
 
       const mockLastBooking = {
         id: 2,
-        end_date: '2024-01-17' // Ended 2 days ago, but cooldown is 3 days
+        end_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Only 2 days ago, needs 3
       };
 
       Asset.findById.mockResolvedValue(mockAsset);
