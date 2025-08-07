@@ -1,11 +1,12 @@
 // src/components/Layout.js
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 const Layout = ({ children }) => {
   const { user, logout, hasPermission } = useAuth();
   const location = useLocation();
+  const [showUserInfo, setShowUserInfo] = useState(true);
 
   const isActive = (path) => location.pathname === path;
 
@@ -94,9 +95,18 @@ const Layout = ({ children }) => {
       </main>
 
       {/* User Info Panel (for debugging) */}
-      {user && process.env.NODE_ENV === 'development' && (
+      {user && process.env.NODE_ENV === 'development' && showUserInfo && (
         <div className="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg border max-w-sm">
-          <h3 className="font-semibold text-sm mb-2">User Info (Dev)</h3>
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="font-semibold text-sm">User Info (Dev)</h3>
+            <button
+              onClick={() => setShowUserInfo(false)}
+              className="text-gray-400 hover:text-gray-600 text-lg font-bold leading-none"
+              title="Dismiss"
+            >
+              ×
+            </button>
+          </div>
           <div className="text-xs space-y-1">
             <div><strong>Email:</strong> {user.email}</div>
             <div><strong>Organization:</strong> {user.organization_id || 'None'}</div>

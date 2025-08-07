@@ -21,7 +21,9 @@ describe('Creative Controller - Integration Tests', () => {
       value_per_day: 500.00,
       is_active: true
     });
-    authToken = `Bearer ${testUser.token || 'test-token'}`;
+    
+    // Generate a token for the test user
+    authToken = `Bearer ${global.testUtils.generateToken(testUser)}`;
   });
 
   afterAll(async () => {

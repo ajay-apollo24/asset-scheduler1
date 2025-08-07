@@ -8,7 +8,7 @@ import Layout from '../components/Layout';
 const Assets = () => {
   const [assets, setAssets] = useState([]);
   const [error, setError] = useState('');
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [showForm, setShowForm] = useState(false);
 
   const fetchAssets = () => {
@@ -25,7 +25,7 @@ const Assets = () => {
     <Layout>
       <h1 className="text-2xl font-semibold mb-6">Assets</h1>
       {error && <div className="text-red-600 mb-4">{error}</div>}
-      {user?.role === 'admin' && (
+      {hasPermission('asset:create') && (
         <>
           <button className="btn btn-primary mb-4" onClick={() => setShowForm(true)}>New Asset</button>
           {showForm && (

@@ -10,6 +10,13 @@ module.exports = async () => {
     const db = require('../config/db');
     await db.close();
     console.log('✅ Database connections closed');
+    
+    // Close test database connection if it exists
+    const jestSetup = require('./jest.setup');
+    if (jestSetup.testDb) {
+      await jestSetup.testDb.end();
+      console.log('✅ Test database connection closed');
+    }
   } catch (error) {
     console.warn('Warning: Error closing database connections:', error.message);
   }

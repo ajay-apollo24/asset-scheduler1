@@ -50,13 +50,13 @@ describe('BookingController', () => {
     };
 
     // Mock successful responses
-    Booking.create.mockResolvedValue(mockBooking);
-    Booking.findById.mockResolvedValue(mockBooking);
-    Booking.updateStatus.mockResolvedValue({ ...mockBooking, status: 'approved' });
-    Booking.updateDates.mockResolvedValue({ ...mockBooking, start_date: '2024-02-01', end_date: '2024-02-05' });
-    Booking.update.mockResolvedValue({ ...mockBooking, lob: 'Diagnostics', title: 'Updated Booking' });
-    Booking.softDelete.mockResolvedValue({ ...mockBooking, is_deleted: true });
-    Booking.getAll.mockResolvedValue([mockBooking]);
+    Booking.create = jest.fn().mockResolvedValue(mockBooking);
+    Booking.findById = jest.fn().mockResolvedValue(mockBooking);
+    Booking.updateStatus = jest.fn().mockResolvedValue({ ...mockBooking, status: 'approved' });
+    Booking.updateDates = jest.fn().mockResolvedValue({ ...mockBooking, start_date: '2024-02-01', end_date: '2024-02-05' });
+    Booking.update = jest.fn().mockResolvedValue({ ...mockBooking, lob: 'Diagnostics', title: 'Updated Booking' });
+    Booking.softDelete = jest.fn().mockResolvedValue({ ...mockBooking, is_deleted: true });
+    Booking.getAll = jest.fn().mockResolvedValue([mockBooking]);
     
     Approval.createSteps.mockResolvedValue([{ id: 1, role: 'admin' }]);
     AuditLog.create.mockResolvedValue({ id: 1 });
@@ -66,7 +66,7 @@ describe('BookingController', () => {
   afterEach(async () => {
     // Clean up test data - use campaigns table instead of bookings
     try {
-      const db = require('../config/db');
+      const db = require('../../config/db');
       await db.query('DELETE FROM creatives WHERE name LIKE \'Test%\'');
       await db.query('DELETE FROM campaigns WHERE name LIKE \'Test%\'');
       await db.query('DELETE FROM assets WHERE name LIKE \'Test%\'');

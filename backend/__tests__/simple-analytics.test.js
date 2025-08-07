@@ -5,7 +5,7 @@ const Analytics = require('../modules/ad-server/utils/analytics');
 jest.mock('../config/db');
 jest.mock('../modules/shared/utils/logger');
 
-const db = require('../config/db');
+const db = require('../../config/db');
 
 describe('Analytics Implementation - Simple Tests', () => {
   beforeEach(() => {

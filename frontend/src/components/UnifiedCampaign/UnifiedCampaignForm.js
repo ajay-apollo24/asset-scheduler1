@@ -116,18 +116,31 @@ const UnifiedCampaignForm = () => {
     const { name, value, type, checked } = e.target;
     
     if (name.includes('.')) {
-      const [section, field] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: type === 'checkbox' ? checked : value
+      const parts = name.split('.');
+      setFormData(prev => {
+        const newData = { ...prev };
+        let current = newData;
+        
+        // Navigate to the nested object
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (!current[parts[i]]) {
+            current[parts[i]] = {};
+          }
+          current = current[parts[i]];
         }
-      }));
+        
+        // Set the final value
+        const finalField = parts[parts.length - 1];
+        current[finalField] = type === 'checkbox' ? checked : 
+                             type === 'number' ? (value === '' ? null : parseFloat(value) || 0) : 
+                             value;
+        
+        return newData;
+      });
     } else {
       setFormData(prev => ({
         ...prev,
-        [name]: type === 'number' ? parseFloat(value) || 0 : value
+        [name]: type === 'number' ? (value === '' ? null : parseFloat(value) || 0) : value
       }));
     }
   };
@@ -165,12 +178,37 @@ const UnifiedCampaignForm = () => {
     setError(null);
 
     try {
-      // Prepare campaign data
+      // Prepare campaign data with proper numeric field handling
       const campaignData = {
         ...formData,
         // Ensure proper field mapping
         name: advertiserType === 'internal' ? formData.title : formData.name,
-        title: advertiserType === 'internal' ? formData.title : formData.name
+        title: advertiserType === 'internal' ? formData.title : formData.name,
+        // Handle numeric fields - convert empty strings to null
+        budget: formData.budget === '' || formData.budget === null ? null : parseFloat(formData.budget),
+        goal_value: formData.goal_value === '' || formData.goal_value === null ? null : parseFloat(formData.goal_value),
+        priority_weight: formData.priority_weight === '' || formData.priority_weight === null ? 1.00 : parseFloat(formData.priority_weight),
+        frequency_cap: formData.frequency_cap === '' || formData.frequency_cap === null ? null : parseInt(formData.frequency_cap, 10),
+        // Ensure targeting criteria arrays are properly initialized
+        targeting_criteria: {
+          demographics: {
+            age_min: formData.targeting_criteria?.demographics?.age_min || null,
+            age_max: formData.targeting_criteria?.demographics?.age_max || null,
+            gender: formData.targeting_criteria?.demographics?.gender || null,
+            interests: formData.targeting_criteria?.demographics?.interests || []
+          },
+          geo: {
+            countries: formData.targeting_criteria?.geo?.countries || [],
+            cities: formData.targeting_criteria?.geo?.cities || null,
+            regions: formData.targeting_criteria?.geo?.regions || []
+          },
+          device: formData.targeting_criteria?.device || { desktop: true, mobile: true, tablet: true },
+          behavioral: {
+            user_segments: formData.targeting_criteria?.behavioral?.user_segments || [],
+            purchase_intent: formData.targeting_criteria?.behavioral?.purchase_intent || [],
+            browsing_history: formData.targeting_criteria?.behavioral?.browsing_history || []
+          }
+        }
       };
 
       const response = await unifiedCampaignApi.createCampaign(campaignData);
@@ -503,9 +541,9 @@ const UnifiedCampaignForm = () => {
                     <input
                       type="checkbox"
                       className="checkbox checkbox-sm checkbox-primary"
-                      checked={formData.targeting_criteria.demographics.interests.includes(interest)}
+                      checked={formData.targeting_criteria.demographics.interests?.includes(interest) || false}
                       onChange={() => handleArrayChange('demographics', 'interests', interest, 
-                        formData.targeting_criteria.demographics.interests.includes(interest) ? 'remove' : 'add')}
+                        formData.targeting_criteria.demographics.interests?.includes(interest) ? 'remove' : 'add')}
                     />
                     <span className="label-text ml-2 capitalize">{interest}</span>
                   </label>
@@ -753,7 +791,7 @@ const UnifiedCampaignForm = () => {
               <div className="flex justify-between">
                 <span className="font-medium">Interests:</span>
                 <span>
-                  {formData.targeting_criteria.demographics.interests.length > 0 ?
+                  {formData.targeting_criteria.demographics.interests?.length > 0 ?
                     formData.targeting_criteria.demographics.interests.join(', ') :
                     'All interests'
                   }

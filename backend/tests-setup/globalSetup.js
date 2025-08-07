@@ -20,6 +20,7 @@ module.exports = async function globalSetup() {
     NODE_ENV: 'test',
     START_TEST_SERVER: 'true', // Force server to start in test mode
     PORT: '5001', // Use port 5001 for tests
+    JWT_SECRET: 'your-secret-key', // Ensure consistent JWT secret
     DB_NAME: process.env.TEST_DB_NAME || 'asset_allocation_test',
     DB_USER: process.env.TEST_DB_USER || 'asset_allocation',
     DB_PASSWORD: process.env.TEST_DB_PASSWORD || 'asset_allocation',
