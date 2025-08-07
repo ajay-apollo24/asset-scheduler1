@@ -40,7 +40,7 @@ const AdServer = {
       }
 
       // 3. Use ML engine to score creatives
-      const mlCreative = await MLEngine.optimizeCreativeSelection(targetedCreatives, user_context);
+      const mlCreative = await MLEngine.optimizeCreativeSelection(targetedCreatives, user_context, page_context);
 
       // 4. Apply performance optimization as fallback
       const bestCreative = await this.selectBestCreative([mlCreative], user_context);
