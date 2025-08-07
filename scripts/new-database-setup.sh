@@ -16,9 +16,9 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Database Configuration - CHANGE THESE TO YOUR PREFERENCE
-DB_NAME="asset_scheduler_aug_06"
-DB_USER="asset_scheduler_user_aug_06"
-DB_PASSWORD="asset_scheduler_pass_aug_06"
+DB_NAME="asset_scheduler_new"
+DB_USER="asset_scheduler_user"
+DB_PASSWORD="asset_scheduler_pass"
 DB_HOST="localhost"
 DB_PORT="5435"
 
@@ -393,8 +393,46 @@ echo ""
 # Step 6: Run Enhanced Fairness Migration
 print_step "6" "Running Enhanced Fairness Migration"
 
-print_info "Running enhanced fairness migration..."
+print_info "Running enhanced fairness migration with temporary environment..."
+# Temporarily replace .env with temp file for migration
+mv backend/.env backend/.env.backup
+cat > backend/.env << EOF
+# Database Configuration
+DB_HOST=$DB_HOST
+DB_PORT=$DB_PORT
+DB_NAME=$DB_NAME
+DB_USER=$DB_USER
+DB_PASSWORD=$DB_PASSWORD
+
+# Application Configuration
+NODE_ENV=development
+PORT=3001
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_EXPIRES_IN=24h
+
+# Enhanced Fairness Configuration
+FAIRNESS_ENABLED=true
+ROI_TRACKING_ENABLED=true
+
+# Logging
+LOG_LEVEL=info
+LOG_FILE=logs/app.log
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Session
+SESSION_SECRET=your-session-secret-change-this-in-production
+
+# Database URL (for compatibility)
+DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME
+EOF
+
 node scripts/run-enhanced-fairness-migration.js
+
+# Restore original .env
+mv backend/.env.backup backend/.env
 
 print_success "Enhanced fairness migration completed"
 echo ""
@@ -402,8 +440,56 @@ echo ""
 # Step 7: Seed Database
 print_step "7" "Seeding Database with Sample Data"
 
-print_info "Running seed script..."
+print_info "Creating temporary environment for seeding..."
+# Create temporary .env file for seeding
+TEMP_ENV_FILE="backend/.env.temp"
+cat > "$TEMP_ENV_FILE" << EOF
+# Database Configuration
+DB_HOST=$DB_HOST
+DB_PORT=$DB_PORT
+DB_NAME=$DB_NAME
+DB_USER=$DB_USER
+DB_PASSWORD=$DB_PASSWORD
+
+# Application Configuration
+NODE_ENV=development
+PORT=3001
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_EXPIRES_IN=24h
+
+# Enhanced Fairness Configuration
+FAIRNESS_ENABLED=true
+ROI_TRACKING_ENABLED=true
+
+# Logging
+LOG_LEVEL=info
+LOG_FILE=logs/app.log
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# Session
+SESSION_SECRET=your-session-secret-change-this-in-production
+
+# Database URL (for compatibility)
+DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME
+EOF
+
+print_info "Running seed script with temporary environment..."
+# Temporarily replace .env with temp file
+mv backend/.env backend/.env.backup
+mv "$TEMP_ENV_FILE" backend/.env
+
+# Run the seed script
 node backend/scripts/seeds/unifiedSeedScript.js
+
+# Restore original .env
+mv backend/.env backend/.env.temp
+mv backend/.env.backup backend/.env
+
+# Clean up temp file
+rm -f backend/.env.temp
 
 print_success "Database seeded successfully"
 echo ""
@@ -429,6 +515,11 @@ if [ "$ORG_COUNT" -gt 0 ] && [ "$USER_COUNT" -gt 0 ]; then
 else
     print_warning "Sample data not found"
 fi
+
+print_info "Database connection details for verification:"
+print_info "  Database: $DB_NAME"
+print_info "  User: $DB_USER"
+print_info "  Host: $DB_HOST:$DB_PORT"
 
 echo ""
 
