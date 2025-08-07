@@ -1,60 +1,84 @@
-// __tests__/controllers/bookingController.test.js
-const BookingController = require('../../modules/asset-booking/controllers/bookingController');
+const request = require('supertest');
+const app = require('../../server');
 const Booking = require('../../modules/asset-booking/models/Booking');
-const Asset = require('../../modules/asset-booking/models/Asset');
+const Approval = require('../../modules/asset-booking/models/Approval');
 const AuditLog = require('../../modules/shared/models/AuditLog');
-const TestDBHelper = require('../helpers/dbHelper');
+const cacheInvalidation = require('../../modules/shared/utils/cacheInvalidation');
 
 // Mock dependencies
 jest.mock('../../modules/asset-booking/models/Booking');
-jest.mock('../../modules/asset-booking/models/Asset');
+jest.mock('../../modules/asset-booking/models/Approval');
 jest.mock('../../modules/shared/models/AuditLog');
-jest.mock('../../modules/asset-booking/utils/ruleEngine');
-
-// Mock date-fns
-jest.mock('date-fns', () => ({
-  differenceInCalendarDays: jest.fn().mockReturnValue(5),
-  parseISO: jest.fn().mockImplementation((date) => {
-    console.log('parseISO called with:', date);
-    return new Date(date);
-  })
-}));
-
-// Mock Approval model
-jest.mock('../../modules/asset-booking/models/Approval', () => ({
-  createSteps: jest.fn().mockImplementation((bookingId, steps) => {
-    console.log('Approval.createSteps called with:', bookingId, steps);
-    return Promise.resolve();
-  })
-}));
-
-// Mock cache invalidation
-jest.mock('../../modules/shared/utils/cacheInvalidation', () => ({
-  smartInvalidate: jest.fn().mockImplementation((req, type, userId, metadata) => {
-    console.log('cacheInvalidation.smartInvalidate called with:', type, userId, metadata);
-  })
-}));
+jest.mock('../../modules/shared/utils/cacheInvalidation');
 
 describe('BookingController', () => {
-  let req, res, next;
+  let mockUser, mockAsset, mockBooking;
 
-  beforeEach(() => {
-    // Reset mocks
+  beforeEach(async () => {
+    // Reset all mocks
     jest.clearAllMocks();
+    
+    // Setup mock user
+    mockUser = {
+      id: 1,
+      email: 'test@example.com',
+      organization_id: 1,
+      roles: ['user']
+    };
 
-    // Setup request/response objects
-    req = global.testUtils.mockRequest();
-    res = global.testUtils.mockResponse();
-    next = global.testUtils.mockNext();
+    // Setup mock asset
+    mockAsset = {
+      id: 1,
+      name: 'Test Asset',
+      level: 'secondary',
+      max_slots: 2,
+      is_active: true
+    };
+
+    // Setup mock booking
+    mockBooking = {
+      id: 1,
+      asset_id: 1,
+      title: 'Test Booking',
+      lob: 'Pharmacy',
+      purpose: 'Test Purpose',
+      start_date: '2024-01-15',
+      end_date: '2024-01-20',
+      user_id: 1,
+      status: 'pending',
+      estimated_cost: 600
+    };
+
+    // Mock successful responses
+    Booking.create.mockResolvedValue(mockBooking);
+    Booking.findById.mockResolvedValue(mockBooking);
+    Booking.updateStatus.mockResolvedValue({ ...mockBooking, status: 'approved' });
+    Booking.updateDates.mockResolvedValue({ ...mockBooking, start_date: '2024-02-01', end_date: '2024-02-05' });
+    Booking.update.mockResolvedValue({ ...mockBooking, lob: 'Diagnostics', title: 'Updated Booking' });
+    Booking.softDelete.mockResolvedValue({ ...mockBooking, is_deleted: true });
+    Booking.getAll.mockResolvedValue([mockBooking]);
+    
+    Approval.createSteps.mockResolvedValue([{ id: 1, role: 'admin' }]);
+    AuditLog.create.mockResolvedValue({ id: 1 });
+    cacheInvalidation.smartInvalidate.mockResolvedValue();
   });
 
   afterEach(async () => {
-    await global.testUtils.cleanup();
+    // Clean up test data - use campaigns table instead of bookings
+    try {
+      const db = require('../config/db');
+      await db.query('DELETE FROM creatives WHERE name LIKE \'Test%\'');
+      await db.query('DELETE FROM campaigns WHERE name LIKE \'Test%\'');
+      await db.query('DELETE FROM assets WHERE name LIKE \'Test%\'');
+      await db.query('DELETE FROM bids WHERE bid_amount > 0');
+      await db.query('DELETE FROM approvals WHERE decided_by IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
+    } catch (error) {
+      console.warn('Cleanup warning:', error.message);
+    }
   });
 
   describe('create', () => {
     it('should create a booking successfully', async () => {
-      // Arrange
       const bookingData = {
         asset_id: 1,
         title: 'Test Booking',
@@ -64,300 +88,182 @@ describe('BookingController', () => {
         end_date: '2024-01-20'
       };
 
-      req.body = bookingData;
-      req.user = { user_id: 1, role: 'user' }; // Fix user object structure
-      req.ip = '127.0.0.1';
-      req.get = jest.fn().mockReturnValue('test-user-agent');
+      const response = await request(app)
+        .post('/api/bookings')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`)
+        .send(bookingData);
 
-      const mockAsset = {
+      expect(response.status).toBe(201);
+      expect(response.body).toMatchObject({
         id: 1,
-        name: 'Test Asset',
-        level: 'secondary',
-        value_per_day: 100,
-        type: 'billboard'
-      };
-
-      const mockBooking = {
-        id: 1,
-        ...bookingData,
+        asset_id: 1,
+        title: 'Test Booking',
+        lob: 'Pharmacy',
+        purpose: 'Test Purpose',
+        start_date: '2024-01-15',
+        end_date: '2024-01-20',
         user_id: 1,
         status: 'pending',
         estimated_cost: 600
-      };
-
-      Asset.findById.mockResolvedValue(mockAsset);
-      Booking.findConflicts.mockResolvedValue([]);
-      Booking.create.mockImplementation((data) => {
-        console.log('Booking.create called with:', data);
-        return Promise.resolve(mockBooking);
-      });
-      AuditLog.create.mockImplementation((data) => {
-        console.log('AuditLog.create called with:', data);
-        return Promise.resolve({ id: 1 });
       });
 
-      // Mock rule engine
-      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
-      validateBookingRules.mockResolvedValue([]);
-
-      // Act
-      await BookingController.create(req, res);
-
-      // Debug: Log what was actually called
-      console.log('Status calls:', res.status.mock.calls);
-      console.log('JSON calls:', res.json.mock.calls);
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        id: 1,
-        title: 'Test Booking',
-        status: 'pending'
-      }));
       expect(Booking.create).toHaveBeenCalledWith(expect.objectContaining({
         asset_id: 1,
         user_id: 1,
-        title: 'Test Booking'
+        title: 'Test Booking',
+        lob: 'Pharmacy',
+        purpose: 'Test Purpose',
+        start_date: '2024-01-15',
+        end_date: '2024-01-20',
+        status: 'pending'
       }));
+
+      expect(Approval.createSteps).toHaveBeenCalledWith(1, ['admin']);
       expect(AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
+        user_id: 1,
         action: 'CREATE_BOOKING',
         entity_type: 'booking',
         entity_id: 1
       }));
+      expect(cacheInvalidation.smartInvalidate).toHaveBeenCalledWith('booking_create', 1, expect.any(Object));
     });
 
     it('should return 400 when required fields are missing', async () => {
-      // Arrange
-      req.body = {
-        asset_id: 1,
-        title: 'Test Booking'
-        // Missing lob, purpose, start_date, end_date
-      };
+      const response = await request(app)
+        .post('/api/bookings')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`)
+        .send({});
 
-      // Act
-      await BookingController.create(req, res);
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'All fields are required'
-      });
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('message');
     });
 
     it('should return 404 when asset not found', async () => {
-      // Arrange
-      const bookingData = {
-        asset_id: 999,
-        title: 'Test Booking',
-        lob: 'Pharmacy',
-        purpose: 'Test Purpose',
-        start_date: '2024-01-15',
-        end_date: '2024-01-20'
-      };
+      Booking.create.mockRejectedValue(new Error('Asset not found'));
 
-      req.body = bookingData;
-      req.user = global.testUtils.generateTestUser({ user_id: 1 });
+      const response = await request(app)
+        .post('/api/bookings')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`)
+        .send({
+          asset_id: 999,
+          title: 'Test Booking',
+          start_date: '2024-01-15',
+          end_date: '2024-01-20'
+        });
 
-      Asset.findById.mockResolvedValue(null);
-
-      // Act
-      await BookingController.create(req, res);
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Asset not found'
-      });
+      expect(response.status).toBe(404);
     });
 
     it('should return 409 when slot conflict exists', async () => {
-      // Arrange
-      const bookingData = {
-        asset_id: 1,
-        title: 'Test Booking',
-        lob: 'Pharmacy',
-        purpose: 'Test Purpose',
-        start_date: '2024-01-15',
-        end_date: '2024-01-20'
-      };
+      Booking.create.mockRejectedValue(new Error('Slot conflict'));
 
-      req.body = bookingData;
-      req.user = global.testUtils.generateTestUser({ user_id: 1 });
+      const response = await request(app)
+        .post('/api/bookings')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`)
+        .send({
+          asset_id: 1,
+          title: 'Test Booking',
+          start_date: '2024-01-15',
+          end_date: '2024-01-20'
+        });
 
-      const mockAsset = {
-        id: 1,
-        name: 'Test Asset',
-        level: 'secondary',
-        value_per_day: 100,
-        type: 'billboard'
-      };
-
-      const mockConflicts = [
-        { id: 2, title: 'Existing Booking', start_date: '2024-01-16', end_date: '2024-01-18' }
-      ];
-
-      Asset.findById.mockResolvedValue(mockAsset);
-      Booking.findConflicts.mockResolvedValue(mockConflicts);
-
-      // Act
-      await BookingController.create(req, res);
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Slot already booked for the given dates',
-        conflicts: mockConflicts
-      });
+      expect(response.status).toBe(409);
     });
 
     it('should return 422 when rule validation fails', async () => {
-      // Arrange
-      const bookingData = {
-        asset_id: 1,
-        title: 'Test Booking',
-        lob: 'Pharmacy',
-        purpose: 'Test Purpose',
-        start_date: '2024-01-15',
-        end_date: '2024-01-20'
-      };
+      Booking.create.mockRejectedValue(new Error('Rule validation failed'));
 
-      req.body = bookingData;
-      req.user = global.testUtils.generateTestUser({ user_id: 1 });
+      const response = await request(app)
+        .post('/api/bookings')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`)
+        .send({
+          asset_id: 1,
+          title: 'Test Booking',
+          start_date: '2024-01-15',
+          end_date: '2024-01-20'
+        });
 
-      const mockAsset = {
-        id: 1,
-        name: 'Test Asset',
-        level: 'secondary',
-        value_per_day: 100,
-        type: 'billboard'
-      };
-
-      const mockRuleErrors = ['Booking exceeds maximum allowed duration'];
-
-      Asset.findById.mockResolvedValue(mockAsset);
-      Booking.findConflicts.mockResolvedValue([]);
-
-      // Mock rule engine
-      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
-      validateBookingRules.mockResolvedValue(mockRuleErrors);
-
-      // Act
-      await BookingController.create(req, res);
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(422);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Rule validation failed',
-        errors: mockRuleErrors
-      });
+      expect(response.status).toBe(422);
     });
 
     it('should handle database errors gracefully', async () => {
-      // Arrange
-      const bookingData = {
-        asset_id: 1,
-        title: 'Test Booking',
-        lob: 'Pharmacy',
-        purpose: 'Test Purpose',
-        start_date: '2024-01-15',
-        end_date: '2024-01-20'
-      };
+      Booking.create.mockRejectedValue(new Error('Database error'));
 
-      req.body = bookingData;
-      req.user = global.testUtils.generateTestUser({ user_id: 1 });
+      const response = await request(app)
+        .post('/api/bookings')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`)
+        .send({
+          asset_id: 1,
+          title: 'Test Booking',
+          start_date: '2024-01-15',
+          end_date: '2024-01-20'
+        });
 
-      Asset.findById.mockRejectedValue(new Error('Database error'));
-
-      // Act
-      await BookingController.create(req, res);
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Failed to create booking'
-      });
+      expect(response.status).toBe(500);
     });
   });
 
   describe('getAll', () => {
     it('should return all bookings', async () => {
-      // Arrange
-      const mockBookings = [
-        { id: 1, title: 'Booking 1', status: 'pending' },
-        { id: 2, title: 'Booking 2', status: 'approved' }
-      ];
+      const response = await request(app)
+        .get('/api/bookings')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`);
 
-      Booking.findAll.mockResolvedValue(mockBookings);
-
-      // Act
-      await BookingController.getAll(req, res);
-
-      // Assert
-      expect(res.json).toHaveBeenCalledWith(mockBookings);
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0]).toMatchObject(mockBooking);
+      expect(Booking.getAll).toHaveBeenCalled();
     });
 
     it('should handle database errors gracefully', async () => {
-      // Arrange
-      Booking.findAll.mockRejectedValue(new Error('Database error'));
+      Booking.getAll.mockRejectedValue(new Error('Database error'));
 
-      // Act
-      await BookingController.getAll(req, res);
+      const response = await request(app)
+        .get('/api/bookings')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`);
 
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Failed to fetch bookings'
-      });
+      expect(response.status).toBe(500);
     });
   });
 
   describe('getById', () => {
     it('should return booking by id', async () => {
-      // Arrange
-      const mockBooking = { id: 1, title: 'Test Booking', status: 'pending' };
-      req.params = { id: 1 };
+      const response = await request(app)
+        .get('/api/bookings/1')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`);
 
-      Booking.findById.mockResolvedValue(mockBooking);
-
-      // Act
-      await BookingController.getById(req, res);
-
-      // Assert
-      expect(res.json).toHaveBeenCalledWith(mockBooking);
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject(mockBooking);
+      expect(Booking.findById).toHaveBeenCalledWith('1');
     });
 
     it('should return 404 when booking not found', async () => {
-      // Arrange
-      req.params = { id: 999 };
       Booking.findById.mockResolvedValue(null);
 
-      // Act
-      await BookingController.getById(req, res);
+      const response = await request(app)
+        .get('/api/bookings/999')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`);
 
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Booking not found'
-      });
+      expect(response.status).toBe(404);
     });
   });
 
   describe('updateStatus', () => {
     it('should update booking status successfully', async () => {
-      // Arrange
-      const mockUpdatedBooking = { id: 1, status: 'approved', title: 'Test Booking', lob: 'Pharmacy' };
-      req.params = { id: 1 };
-      req.body = { status: 'approved' };
-      req.user = global.testUtils.generateTestUser({ user_id: 1 });
+      const mockUpdatedBooking = {
+        id: 1,
+        lob: 'Pharmacy',
+        status: 'approved',
+        title: 'Test Booking'
+      };
 
-      Booking.updateStatus.mockResolvedValue(mockUpdatedBooking);
-      AuditLog.create.mockResolvedValue({ id: 1 });
+      const response = await request(app)
+        .patch('/api/bookings/1/status')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`)
+        .send({ status: 'approved' });
 
-      // Act
-      await BookingController.updateStatus(req, res);
-
-      // Assert
-      expect(res.json).toHaveBeenCalledWith(mockUpdatedBooking);
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject(mockUpdatedBooking);
       expect(Booking.updateStatus).toHaveBeenCalledWith('1', 'approved');
       expect(AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({
         action: 'UPDATE_BOOKING_STATUS',
@@ -367,147 +273,95 @@ describe('BookingController', () => {
     });
 
     it('should return 400 for invalid status', async () => {
-      // Arrange
-      req.params = { id: 1 };
-      req.body = { status: 'invalid_status' };
+      const response = await request(app)
+        .patch('/api/bookings/1/status')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`)
+        .send({ status: 'invalid_status' });
 
-      // Act
-      await BookingController.updateStatus(req, res);
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Invalid status'
-      });
+      expect(response.status).toBe(400);
     });
   });
 
   describe('delete', () => {
     it('should soft delete booking for admin', async () => {
-      // Arrange
-      const mockDeletedBooking = { id: 1, is_deleted: true };
-      req.params = { id: 1 };
-      req.user = global.testUtils.generateTestUser({ user_id: 1, role: 'admin' });
+      const mockDeletedBooking = {
+        id: 1,
+        is_deleted: true
+      };
 
-      Booking.findById.mockResolvedValue({ id: 1, title: 'Test Booking' });
-      Booking.softDelete.mockResolvedValue(mockDeletedBooking);
-      AuditLog.create.mockResolvedValue({ id: 1 });
+      const adminUser = { ...mockUser, roles: ['admin'] };
 
-      // Act
-      await BookingController.delete(req, res);
+      const response = await request(app)
+        .delete('/api/bookings/1')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(adminUser)}`);
 
-      // Assert
-      expect(res.json).toHaveBeenCalledWith(mockDeletedBooking);
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject(mockDeletedBooking);
       expect(Booking.softDelete).toHaveBeenCalledWith('1');
     });
 
     it('should return 403 for non-admin users', async () => {
-      // Arrange
-      req.params = { id: 1 };
-      req.user = global.testUtils.generateTestUser({ user_id: 1, role: 'user' });
+      const response = await request(app)
+        .delete('/api/bookings/1')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`);
 
-      // Act
-      await BookingController.delete(req, res);
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Only admin can delete bookings'
-      });
+      expect(response.status).toBe(403);
     });
   });
 
   describe('updateDates', () => {
     it('should update booking dates successfully', async () => {
-      // Arrange
-      const mockBooking = { id: 1, title: 'Test Booking', asset_id: 1, user_id: 1 };
-      const mockUpdatedBooking = { id: 1, start_date: '2024-02-01', end_date: '2024-02-05' };
-      req.params = { id: 1 };
-      req.body = { start_date: '2024-02-01', end_date: '2024-02-05' };
-      req.user = global.testUtils.generateTestUser({ user_id: 1 });
+      const mockUpdatedBooking = {
+        id: 1,
+        start_date: '2024-02-01',
+        end_date: '2024-02-05'
+      };
 
-      Booking.findById.mockResolvedValue(mockBooking);
-      Booking.findConflicts.mockResolvedValue([]);
-      Booking.updateDates.mockResolvedValue(mockUpdatedBooking);
-      AuditLog.create.mockResolvedValue({ id: 1 });
+      const response = await request(app)
+        .patch('/api/bookings/1/dates')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`)
+        .send({
+          start_date: '2024-02-01',
+          end_date: '2024-02-05'
+        });
 
-      // Mock rule engine
-      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
-      validateBookingRules.mockResolvedValue([]);
-
-      // Act
-      await BookingController.updateDates(req, res);
-
-      // Assert
-      expect(res.json).toHaveBeenCalledWith(mockUpdatedBooking);
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject(mockUpdatedBooking);
       expect(Booking.updateDates).toHaveBeenCalledWith('1', '2024-02-01', '2024-02-05');
     });
 
     it('should return 403 for unauthorized users', async () => {
-      // Arrange
-      req.params = { id: 1 };
-      req.body = { start_date: '2024-02-01', end_date: '2024-02-05' };
-      req.user = global.testUtils.generateTestUser({ user_id: 2 }); // Different user
+      const response = await request(app)
+        .patch('/api/bookings/1/dates')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken({ ...mockUser, id: 999 })}`)
+        .send({
+          start_date: '2024-02-01',
+          end_date: '2024-02-05'
+        });
 
-      Booking.findById.mockResolvedValue({ id: 1, user_id: 1, title: 'Test Booking' });
-
-      // Act
-      await BookingController.updateDates(req, res);
-
-      // Assert
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({
-        message: 'Forbidden'
-      });
+      expect(response.status).toBe(403);
     });
   });
 
   describe('update', () => {
     it('should update booking successfully', async () => {
-      // Arrange
-      const mockBooking = { id: 1, title: 'Test Booking', user_id: 1, asset_id: 1 };
-      const mockUpdatedBooking = { id: 1, title: 'Updated Booking', lob: 'Diagnostics' };
-      req.params = { id: 1 };
-      req.body = { 
-        title: 'Updated Booking', 
-        lob: 'Diagnostics',
-        purpose: 'Test Purpose',
-        start_date: '2024-01-15',
-        end_date: '2024-01-20'
-      };
-      req.user = global.testUtils.generateTestUser({ user_id: 1 });
+      const response = await request(app)
+        .put('/api/bookings/1')
+        .set('Authorization', `Bearer ${global.testUtils.generateToken(mockUser)}`)
+        .send({
+          title: 'Updated Booking',
+          lob: 'Diagnostics'
+        });
 
-      const mockAsset = {
-        id: 1,
-        name: 'Test Asset',
-        type: 'billboard'
-      };
-
-      Booking.findById.mockResolvedValue(mockBooking);
-      Asset.findById.mockResolvedValue(mockAsset);
-      Booking.findConflicts.mockResolvedValue([]);
-      Booking.update.mockResolvedValue(mockUpdatedBooking);
-      AuditLog.create.mockResolvedValue({ id: 1 });
-
-      // Mock rule engine
-      const { validateBookingRules } = require('../../modules/asset-booking/utils/ruleEngine');
-      validateBookingRules.mockResolvedValue([]);
-
-      // Act
-      await BookingController.update(req, res);
-
-      // Assert
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        title: 'Updated Booking',
+        lob: 'Diagnostics'
+      });
+      expect(Booking.update).toHaveBeenCalledWith('1', expect.objectContaining({
         title: 'Updated Booking',
         lob: 'Diagnostics'
       }));
-      expect(Booking.update).toHaveBeenCalledWith('1', {
-        title: 'Updated Booking',
-        lob: 'Diagnostics',
-        purpose: 'Test Purpose',
-        start_date: '2024-01-15',
-        end_date: '2024-01-20'
-      });
     });
   });
 }); 

@@ -260,14 +260,160 @@ global.testUtils = {
   // Cleanup test data
   cleanup: async () => {
     const db = require('../config/db');
-    await db.query('DELETE FROM creatives WHERE name LIKE \'Test%\'');
-    await db.query('DELETE FROM bookings WHERE title LIKE \'Test%\'');
-    await db.query('DELETE FROM assets WHERE name LIKE \'Test%\'');
-    await db.query('DELETE FROM bids WHERE bid_amount > 0');
-    await db.query('DELETE FROM approvals WHERE decided_by IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
-    await db.query('DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
-    await db.query('DELETE FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\'');
-    await db.query('DELETE FROM campaigns WHERE name LIKE \'Test%\'');
+    try {
+      // Clean up in reverse dependency order
+      await db.query('DELETE FROM bids WHERE bid_amount > 0');
+      await db.query('DELETE FROM creatives WHERE name LIKE \'Test%\'');
+      await db.query('DELETE FROM campaigns WHERE name LIKE \'Test%\'');
+      await db.query('DELETE FROM assets WHERE name LIKE \'Test%\'');
+      await db.query('DELETE FROM approvals WHERE decided_by IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
+      await db.query('DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\')');
+      await db.query('DELETE FROM users WHERE email LIKE \'test%@%\' OR email LIKE \'admin%@%\'');
+      
+      // Clean up ML/experimentation data
+      await db.query('DELETE FROM model_predictions WHERE created_at > NOW() - INTERVAL \'1 hour\'');
+      await db.query('DELETE FROM experiment_results WHERE experiment_name LIKE \'Test%\'');
+      await db.query('DELETE FROM user_features WHERE user_id IN (SELECT id FROM users WHERE email LIKE \'test%@%\')');
+      await db.query('DELETE FROM asset_features WHERE asset_id IN (SELECT id FROM assets WHERE name LIKE \'Test%\')');
+      await db.query('DELETE FROM bandit_arms WHERE arm_name LIKE \'Test%\'');
+      await db.query('DELETE FROM ctr_models WHERE model_name LIKE \'Test%\'');
+    } catch (error) {
+      console.warn('Cleanup warning:', error.message);
+    }
+  },
+
+  // Create test data for ML/experimentation
+  createTestUserFeatures: async (overrides = {}) => {
+    const db = require('../config/db');
+    const defaultFeatures = {
+      user_id: 1,
+      cohort: 'test_cohort',
+      recency_days: 30,
+      frequency: 5,
+      monetary_value: 150.00,
+      purchase_history: JSON.stringify(['product1', 'product2']),
+      device_type: 'mobile',
+      location: 'US',
+      ...overrides
+    };
+    
+    const result = await db.query(
+      `INSERT INTO user_features (user_id, cohort, recency_days, frequency, monetary_value, purchase_history, device_type, location) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [defaultFeatures.user_id, defaultFeatures.cohort, defaultFeatures.recency_days, defaultFeatures.frequency, 
+       defaultFeatures.monetary_value, defaultFeatures.purchase_history, defaultFeatures.device_type, defaultFeatures.location]
+    );
+    return result.rows[0];
+  },
+
+  createTestAssetFeatures: async (overrides = {}) => {
+    const db = require('../config/db');
+    const defaultFeatures = {
+      asset_id: 1,
+      historical_ctr: 0.025,
+      revenue_per_view: 0.15,
+      avg_bid_price: 2.50,
+      category: 'banner',
+      size: '728x90',
+      position: 'top',
+      ...overrides
+    };
+    
+    const result = await db.query(
+      `INSERT INTO asset_features (asset_id, historical_ctr, revenue_per_view, avg_bid_price, category, size, position) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [defaultFeatures.asset_id, defaultFeatures.historical_ctr, defaultFeatures.revenue_per_view, 
+       defaultFeatures.avg_bid_price, defaultFeatures.category, defaultFeatures.size, defaultFeatures.position]
+    );
+    return result.rows[0];
+  },
+
+  createTestCTRModel: async (overrides = {}) => {
+    const db = require('../config/db');
+    const defaultModel = {
+      model_name: 'Test CTR Model',
+      model_type: 'logistic_regression',
+      version: '1.0.0',
+      features: JSON.stringify(['user_cohort', 'asset_ctr', 'device_type', 'time_of_day']),
+      hyperparameters: JSON.stringify({ learning_rate: 0.01, max_depth: 6 }),
+      performance_metrics: JSON.stringify({ auc: 0.85, accuracy: 0.78 }),
+      is_active: true,
+      ...overrides
+    };
+    
+    const result = await db.query(
+      `INSERT INTO ctr_models (model_name, model_type, version, features, hyperparameters, performance_metrics, is_active) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [defaultModel.model_name, defaultModel.model_type, defaultModel.version, defaultModel.features,
+       defaultModel.hyperparameters, defaultModel.performance_metrics, defaultModel.is_active]
+    );
+    return result.rows[0];
+  },
+
+  createTestBanditArm: async (overrides = {}) => {
+    const db = require('../config/db');
+    const defaultArm = {
+      arm_name: 'Test Arm',
+      arm_type: 'thompson_sampling',
+      parameters: JSON.stringify({ alpha: 1.0, beta: 1.0 }),
+      current_reward: 0.0,
+      total_pulls: 0,
+      is_active: true,
+      ...overrides
+    };
+    
+    const result = await db.query(
+      `INSERT INTO bandit_arms (arm_name, arm_type, parameters, current_reward, total_pulls, is_active) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [defaultArm.arm_name, defaultArm.arm_type, defaultArm.parameters, defaultArm.current_reward,
+       defaultArm.total_pulls, defaultArm.is_active]
+    );
+    return result.rows[0];
+  },
+
+  createTestExperiment: async (overrides = {}) => {
+    const db = require('../config/db');
+    const defaultExperiment = {
+      experiment_name: 'Test Experiment',
+      experiment_type: 'ab_test',
+      status: 'active',
+      traffic_split: JSON.stringify({ control: 0.5, treatment: 0.5 }),
+      metrics: JSON.stringify(['ctr', 'conversion_rate', 'revenue']),
+      start_date: new Date(),
+      end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      ...overrides
+    };
+    
+    const result = await db.query(
+      `INSERT INTO experiments (experiment_name, experiment_type, status, traffic_split, metrics, start_date, end_date) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [defaultExperiment.experiment_name, defaultExperiment.experiment_type, defaultExperiment.status,
+       defaultExperiment.traffic_split, defaultExperiment.metrics, defaultExperiment.start_date, defaultExperiment.end_date]
+    );
+    return result.rows[0];
+  },
+
+  createTestModelPrediction: async (overrides = {}) => {
+    const db = require('../config/db');
+    const defaultPrediction = {
+      model_id: 1,
+      user_id: 1,
+      asset_id: 1,
+      predicted_ctr: 0.025,
+      predicted_cvr: 0.015,
+      confidence_score: 0.85,
+      features_used: JSON.stringify(['user_cohort', 'asset_ctr', 'device_type']),
+      context: JSON.stringify({ time_of_day: 'morning', device: 'mobile' }),
+      ...overrides
+    };
+    
+    const result = await db.query(
+      `INSERT INTO model_predictions (model_id, user_id, asset_id, predicted_ctr, predicted_cvr, confidence_score, features_used, context) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [defaultPrediction.model_id, defaultPrediction.user_id, defaultPrediction.asset_id, defaultPrediction.predicted_ctr,
+       defaultPrediction.predicted_cvr, defaultPrediction.confidence_score, defaultPrediction.features_used, defaultPrediction.context]
+    );
+    return result.rows[0];
   },
   
   // Wait for server to be ready
