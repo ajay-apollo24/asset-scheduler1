@@ -184,6 +184,8 @@ const UnifiedCampaignForm = () => {
         // Ensure proper field mapping
         name: advertiserType === 'internal' ? formData.title : formData.name,
         title: advertiserType === 'internal' ? formData.title : formData.name,
+        // Handle asset_id - convert empty string to null for external campaigns
+        asset_id: formData.asset_id === '' || formData.asset_id === null ? null : parseInt(formData.asset_id, 10),
         // Handle numeric fields - convert empty strings to null
         budget: formData.budget === '' || formData.budget === null ? null : parseFloat(formData.budget),
         goal_value: formData.goal_value === '' || formData.goal_value === null ? null : parseFloat(formData.goal_value),

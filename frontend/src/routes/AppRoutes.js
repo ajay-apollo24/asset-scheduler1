@@ -10,6 +10,7 @@ import Approvals from '../pages/Approvals';
 import Reports from '../pages/Reports';
 import UnifiedCampaigns from '../pages/UnifiedCampaign/Campaigns';
 import CreateUnifiedCampaign from '../pages/UnifiedCampaign/CreateCampaign';
+import EditUnifiedCampaign from '../components/UnifiedCampaign/UnifiedCampaignEditForm';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -57,6 +58,11 @@ const AppRoutes = () => {
         <Route path="/campaigns/create" element={
           <PrivateRoute>
             <CreateUnifiedCampaign />
+          </PrivateRoute>
+        } />
+        <Route path="/campaigns/edit/:id" element={
+          <PrivateRoute>
+            <EditUnifiedCampaign />
           </PrivateRoute>
         } />
       </Routes>

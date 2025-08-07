@@ -13,6 +13,7 @@ router.post('/', authorize('admin', 'marketing_ops'), UnifiedCampaignController.
 router.get('/', authorize('admin', 'marketing_ops', 'analyst'), UnifiedCampaignController.getCampaigns);
 router.get('/:id', authorize('admin', 'marketing_ops', 'analyst'), UnifiedCampaignController.getCampaign);
 router.put('/:id', authorize('admin', 'marketing_ops'), UnifiedCampaignController.updateCampaign);
+router.put('/:id/status', authorize('admin', 'marketing_ops'), UnifiedCampaignController.updateCampaignStatus);
 router.delete('/:id', authorize('admin'), UnifiedCampaignController.deleteCampaign);
 
 // Asset availability routes

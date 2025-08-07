@@ -19,6 +19,10 @@ const unifiedCampaignApi = {
     return apiClient.put(`/campaigns/${id}`, updates);
   },
 
+  updateCampaignStatus: (id, status) => {
+    return apiClient.put(`/campaigns/${id}/status`, { status });
+  },
+
   deleteCampaign: (id) => {
     return apiClient.delete(`/campaigns/${id}`);
   },

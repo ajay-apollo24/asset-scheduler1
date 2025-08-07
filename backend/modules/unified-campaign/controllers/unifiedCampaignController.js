@@ -107,7 +107,7 @@ const UnifiedCampaignController = {
         budget,
         start_date,
         end_date,
-        status: 'pending',
+        status: 'draft',
         lob,
         purpose,
         creative_url,
@@ -233,8 +233,11 @@ const UnifiedCampaignController = {
         return res.status(404).json({ message: 'Campaign not found' });
       }
 
-      // Check if user can update this campaign
-      if (campaign.advertiser_id !== user_id) {
+      // Check if user can update this campaign (creator or admin)
+      const isCreator = campaign.advertiser_id === user_id;
+      const isAdmin = req.user.roles && req.user.roles.includes('admin');
+      
+      if (!isCreator && !isAdmin) {
         return res.status(403).json({ message: 'Not authorized to update this campaign' });
       }
 
@@ -272,6 +275,55 @@ const UnifiedCampaignController = {
     } catch (error) {
       logger.error('Failed to update campaign', { error: error.message, campaignId: id });
       res.status(500).json({ message: 'Failed to update campaign' });
+    }
+  },
+
+  /**
+   * Update campaign status
+   */
+  async updateCampaignStatus(req, res) {
+    const { id } = req.params;
+    const { status } = req.body;
+    const user_id = req.user.user_id;
+
+    if (!status) {
+      return res.status(400).json({ message: 'Status is required' });
+    }
+
+    try {
+      const campaign = await UnifiedCampaign.findById(id);
+      
+      if (!campaign) {
+        return res.status(404).json({ message: 'Campaign not found' });
+      }
+
+      // Check if user can update this campaign (creator or admin)
+      const isCreator = campaign.advertiser_id === user_id;
+      const isAdmin = req.user.roles && req.user.roles.includes('admin');
+      
+      if (!isCreator && !isAdmin) {
+        return res.status(403).json({ message: 'Not authorized to update this campaign' });
+      }
+
+      const updatedCampaign = await UnifiedCampaign.updateStatus(id, status);
+
+      // Log audit
+      await AuditLog.create({
+        user_id,
+        action: 'UPDATE_CAMPAIGN_STATUS',
+        entity_type: 'campaign',
+        entity_id: id,
+        metadata: { status }
+      });
+
+      res.json({
+        message: 'Campaign status updated successfully',
+        campaign: updatedCampaign
+      });
+
+    } catch (error) {
+      logger.error('Failed to update campaign status', { error: error.message, campaignId: id });
+      res.status(500).json({ message: 'Failed to update campaign status' });
     }
   },
 

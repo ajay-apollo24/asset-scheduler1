@@ -98,7 +98,7 @@ const UnifiedCampaignDashboard = () => {
 
   const handleStatusChange = async (campaignId, newStatus) => {
     try {
-      await unifiedCampaignApi.updateCampaign(campaignId, { status: newStatus });
+      await unifiedCampaignApi.updateCampaignStatus(campaignId, newStatus);
       fetchCampaigns(); // Refresh the list
     } catch (err) {
       setError('Failed to update campaign status');
@@ -308,19 +308,65 @@ const UnifiedCampaignDashboard = () => {
                     <td>{getStatusBadge(campaign.status)}</td>
                     <td>
                       <div className="flex space-x-2">
-                        <button 
-                          className="btn btn-xs btn-outline"
-                          onClick={() => handleStatusChange(campaign.id, 'active')}
-                          disabled={campaign.status === 'active'}
-                        >
-                          Activate
-                        </button>
-                        <button 
-                          className="btn btn-xs btn-outline btn-error"
-                          onClick={() => handleDelete(campaign.id)}
-                        >
-                          Delete
-                        </button>
+                        {/* Edit button - only show for draft/pending campaigns */}
+                        {(campaign.status === 'draft' || campaign.status === 'pending') && (
+                          <button 
+                            className="btn btn-xs btn-outline btn-info"
+                            onClick={() => window.location.href = `/campaigns/edit/${campaign.id}`}
+                          >
+                            Edit
+                          </button>
+                        )}
+                        
+                        {/* Activate button - only show for draft/pending campaigns */}
+                        {(campaign.status === 'draft' || campaign.status === 'pending') && (
+                          <button 
+                            className="btn btn-xs btn-outline btn-success"
+                            onClick={() => handleStatusChange(campaign.id, 'active')}
+                          >
+                            Activate
+                          </button>
+                        )}
+                        
+                        {/* Pause button - only show for active campaigns */}
+                        {campaign.status === 'active' && (
+                          <button 
+                            className="btn btn-xs btn-outline btn-warning"
+                            onClick={() => handleStatusChange(campaign.id, 'paused')}
+                          >
+                            Pause
+                          </button>
+                        )}
+                        
+                        {/* Resume button - only show for paused campaigns */}
+                        {campaign.status === 'paused' && (
+                          <button 
+                            className="btn btn-xs btn-outline btn-success"
+                            onClick={() => handleStatusChange(campaign.id, 'active')}
+                          >
+                            Resume
+                          </button>
+                        )}
+                        
+                        {/* Complete button - show for active/paused campaigns */}
+                        {(campaign.status === 'active' || campaign.status === 'paused') && (
+                          <button 
+                            className="btn btn-xs btn-outline btn-info"
+                            onClick={() => handleStatusChange(campaign.id, 'completed')}
+                          >
+                            Complete
+                          </button>
+                        )}
+                        
+                        {/* Delete button - only show for draft/pending campaigns */}
+                        {(campaign.status === 'draft' || campaign.status === 'pending') && (
+                          <button 
+                            className="btn btn-xs btn-outline btn-error"
+                            onClick={() => handleDelete(campaign.id)}
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
