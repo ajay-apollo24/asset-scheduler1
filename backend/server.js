@@ -60,6 +60,15 @@ app.use('/api/ads', adServer.adRoutes);
 app.use('/api/ads/rtb', adServer.rtbRoutes);
 app.use('/api/creatives', adServer.creativeRoutes);
 app.use('/api/ad-server/campaigns', adServer.campaignRoutes);
+app.use('/api/ad-server/targeting', adServer.targetingRoutes);
+app.use('/api/ad-server/budget', adServer.budgetRoutes);
+app.use('/api/ad-server/yield', adServer.yieldRoutes);
+app.use('/api/ad-server/attribution', adServer.attributionRoutes);
+app.use('/api/ad-server/video', adServer.videoRoutes);
+app.use('/api/ad-server/activation', adServer.activationRoutes);
+app.use('/api/ad-server/reporting', adServer.reportingRoutes);
+app.use('/api/ad-server/review', adServer.reviewRoutes);
+app.use('/api/ad-server/launch', adServer.launchRoutes);
 
 // Route mounting - Unified Campaign Routes
 app.use('/api/campaigns', unifiedCampaign.unifiedCampaignRoutes);
